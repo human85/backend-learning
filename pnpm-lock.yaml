@@ -6,7 +6,9 @@ settings:
 
 importers:
 
-  .:
+  .: {}
+
+  apps/mini-saas:
     dependencies:
       '@nestjs/common':
         specifier: ^11.0.1

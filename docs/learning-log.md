@@ -24,3 +24,13 @@
 - 建立 `docs/` 学习档案体系，用当前快照、路线图、日志、决策和专题笔记支持跨设备恢复教学上下文。
 - 确认 Agent 可在形成完整、可验证的学习阶段后主动创建本地提交。
 - 下一课确定为从实际代码追踪默认 `GET /` 请求。
+
+## 2026-07-18｜迁移为后端学习 Monorepo
+
+- 将仓库定位从单一 Mini SaaS 调整为可容纳多个后端学习项目的 `backend-learning`。
+- 使用 pnpm workspace 作为轻量多项目管理机制，暂不引入 Nest CLI monorepo、Nx 或 Turborepo。
+- 将现有 NestJS 应用迁入 `apps/mini-saas/`，并保留独立的依赖、配置和测试边界。
+- 增加根级编排脚本、项目学习档案和 Monorepo 专题笔记。
+- 重新生成 workspace 锁文件，确认依赖归属于 `apps/mini-saas` 而不是根项目。
+- 根级构建、单元测试、端到端测试和 lint 全部通过。
+- 当前需要学习者复述 Monorepo 与 Workspace 的区别，然后再回到 `GET /` 请求链路。

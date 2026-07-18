@@ -11,9 +11,10 @@
 
 ## 当前阶段
 
-- 阶段：后端与 NestJS 基础
+- 阶段：工程组织与 NestJS 基础
 - 状态：进行中
-- 实践进度：项目仍为 NestJS 初始模板，尚未开发业务功能
+- 当前焦点项目：`apps/mini-saas/`
+- 实践进度：仓库已迁移为 pnpm workspace，根级命令验证通过；Mini SaaS 仍为 NestJS 初始模板，尚未开发业务功能
 
 ## 已接触的知识
 
@@ -23,16 +24,18 @@
 | 前后端职责边界 | 理解中 | 已理解前端负责体验、后端负责规则和校验 |
 | Controller、Service、Repository 分工 | 理解中 | 已通过“创建项目”示例串联，但尚未编码 |
 | Repository 名称与作用 | 理解中 | 已理解它抽象某类数据的存取入口 |
+| Monorepo 与 pnpm Workspace | 刚接触 | 正在通过仓库迁移学习，尚待学习者复述和独立操作 |
 
 ## 当前学习任务
 
-从实际代码追踪默认的 `GET /` 请求：依次理解 `main.ts`、`AppModule`、`AppController` 和 `AppService` 的职责，以及 NestJS 如何通过依赖注入将它们连接起来。
+通过本次迁移理解 Git 仓库、Monorepo、pnpm Workspace 和 workspace package 的区别，并学会从根目录定位、安装和运行 `apps/mini-saas/`。
 
 ## 下一步完成标准
 
-- 能用自己的话描述 `GET /` 从启动到返回响应的完整路径。
-- 能解释 Controller 为什么不应承载大量业务规则。
-- 能在导师引导下修改一个简单返回值，并通过单元测试验证。
+- 能用自己的话说明 Monorepo 和 pnpm Workspace 不是同一个概念。
+- 能解释根 `package.json`、`pnpm-workspace.yaml` 和应用 `package.json` 各自负责什么。
+- 能使用 `pnpm --filter @backend-learning/mini-saas test` 只操作当前应用。
+- 完成后回到默认 `GET /` 请求链路课程。
 
 ## 困惑与阻塞
 

@@ -2,7 +2,7 @@
 
 ## 项目定位
 
-本仓库是面向 Web 前端工程师的后端学习项目，不以快速完成产品功能为首要目标。Agent 的主要职责是担任“后端导师”，借助一个真实的 Mini SaaS，帮助学习者逐步掌握 NestJS、数据库、认证授权、Redis、Docker、测试和部署，最终建立全栈开发能力。
+本仓库是面向 Web 前端工程师的后端学习 monorepo，不以快速完成产品功能为首要目标。Agent 的主要职责是担任“后端导师”，借助多个真实项目和最小实验，帮助学习者逐步掌握 NestJS、数据库、认证授权、Redis、Docker、测试和部署，最终建立全栈开发能力。Mini SaaS 是第一个学习项目，不代表仓库的全部边界。
 
 教学时应先解释“为什么需要”，再介绍术语和实现。尽量使用前端经验作类比，例如将 Controller 类比为路由入口、Service 类比为业务 Hook、Repository 类比为数据访问层。不要一次引入过多抽象，也不要为了工程完整性提前搭建尚未学到的复杂架构。
 
@@ -21,30 +21,39 @@
 
 1. 阅读 `docs/README.md`，了解文档职责和维护方式。
 2. 阅读 `docs/learning-progress.md`，确认学习者背景、当前阶段、掌握程度和明确的下一步。
-3. 阅读 `docs/learning-log.md` 的最新记录，了解最近一次学习过程。
-4. 查看 `docs/roadmap.md`，确认当前内容在整体路线中的位置。
-5. 按需查阅 `docs/notes/` 和 `docs/decisions.md`，并与当前代码、Git 状态相互验证。
+3. 阅读当前焦点对应的 `docs/projects/*.md`，确认项目自身状态。
+4. 阅读 `docs/learning-log.md` 的最新记录，了解最近一次学习过程。
+5. 查看 `docs/roadmap.md`，确认当前内容在整体路线中的位置。
+6. 按需查阅 `docs/notes/` 和 `docs/decisions.md`，并与当前代码、Git 状态相互验证。
 
 完成一次实际课程或练习后，应同步维护学习档案：更新 `learning-progress.md` 的当前快照，在 `learning-log.md` 追加带日期的记录；只有阶段状态变化时才更新路线图；形成可复用知识时写入 `notes/`；出现长期有效的技术或教学取舍时记录到 `decisions.md`。不要把计划写成已完成，也不要未经提问或练习就声称学习者已经掌握。若文档与代码不一致，应先核查，再修正文档并说明原因。
 
 ## 项目结构
 
-这是一个 NestJS 11 TypeScript 项目。`src/main.ts` 启动应用，`app.module.ts` 组织依赖，Controller 接收 HTTP 请求，Service 承载业务逻辑。单元测试与源码放在一起，命名为 `*.spec.ts`；端到端测试放在 `test/`，命名为 `*.e2e-spec.ts`。新增功能应按领域组织，例如 `src/projects/`，但只在课程需要时创建对应层次。
+根目录使用 pnpm workspace 管理多个项目：
+
+- `apps/` 存放能够独立运行的完整应用；当前项目位于 `apps/mini-saas/`。
+- `labs/` 用于隔离学习 PostgreSQL、Redis、Docker 等单一概念，仅在需要时创建。
+- `packages/` 只存放已经出现真实复用需求的共享包，禁止为了“以后可能复用”而提前抽象。
+- `docs/` 保存跨项目的学习档案；`docs/projects/` 保存各项目独立状态。
+
+Mini SaaS 是 NestJS 11 TypeScript 应用。其 `src/main.ts` 启动应用，`app.module.ts` 组织依赖，Controller 接收 HTTP 请求，Service 承载业务逻辑。单元测试与源码放在一起，命名为 `*.spec.ts`；端到端测试位于应用的 `test/`。新增功能按领域组织，例如 `apps/mini-saas/src/projects/`，但只在课程需要时创建对应层次。
+
+每个 workspace 项目独立声明自身依赖；根 `package.json` 只放跨项目编排命令或真正的根级工具。新增项目后同步更新 `pnpm-workspace.yaml`（如果现有 glob 无法覆盖），不要手工复制根锁文件。
 
 ## 常用命令
 
-- `pnpm install`：安装依赖。
-- `pnpm run start:dev`：以监听模式启动本地服务，默认端口为 `3000`。
-- `pnpm run build`：编译到 `dist/`。
-- `pnpm test`：运行单元测试。
-- `pnpm run test:e2e`：运行端到端测试。
-- `pnpm run test:cov`：查看测试覆盖率。
-- `pnpm run lint`：检查并修复 ESLint 问题。
-- `pnpm run format`：使用 Prettier 格式化代码。
+- `pnpm install`：从根目录安装整个 workspace 的依赖。
+- `pnpm dev`：启动 Mini SaaS 监听模式，默认端口为 `3000`。
+- `pnpm build`：构建所有包含 `build` 脚本的 workspace 项目。
+- `pnpm test`：运行所有项目的单元测试。
+- `pnpm test:e2e`：运行 Mini SaaS 端到端测试。
+- `pnpm lint`：检查并修复所有项目的 ESLint 问题。
+- `pnpm --filter @backend-learning/mini-saas <script>`：只操作 Mini SaaS，例如 `pnpm --filter @backend-learning/mini-saas test:cov`。
 
 ## 编码与验证约定
 
-使用两空格缩进、单引号和尾随逗号。类使用 `PascalCase`，函数和变量使用 `camelCase`，文件使用 kebab-case 和职责后缀，如 `projects.controller.ts`。Controller 应保持精简，业务规则放在 Service；Repository 或 ORM 只负责数据存取。所有外部输入都应视为不可信，并通过 DTO 验证。
+Mini SaaS 使用两空格缩进、单引号和尾随逗号。类使用 `PascalCase`，函数和变量使用 `camelCase`，文件使用 kebab-case 和职责后缀，如 `projects.controller.ts`。Controller 应保持精简，业务规则放在 Service；Repository 或 ORM 只负责数据存取。所有外部输入都应视为不可信，并通过 DTO 验证。
 
 每个新增行为都应配套有教学价值的测试：Service 规则使用单元测试，完整 HTTP 行为使用端到端测试。提交前至少运行相关测试；不要编辑生成的 `dist/` 文件，也不要提交密钥或本地 `.env`。
 
