@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { configureApp } from './../src/app.config';
 import { AppModule } from './../src/app.module';
 
 describe('AppController (e2e)', () => {
@@ -13,6 +14,7 @@ describe('AppController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    configureApp(app);
     await app.init();
   });
 
@@ -28,6 +30,35 @@ describe('AppController (e2e)', () => {
       .get('/health')
       .expect(200)
       .expect({ status: 'ok' });
+  });
+
+  it('/projects (POST) accepts a valid project', () => {
+    return request(app.getHttpServer())
+      .post('/projects')
+      .send({ name: 'My Project' })
+      .expect(201)
+      .expect({ name: 'My Project' });
+  });
+
+  it('/projects (POST) rejects a non-string name', () => {
+    return request(app.getHttpServer())
+      .post('/projects')
+      .send({ name: 123 })
+      .expect(400);
+  });
+
+  it('/projects (POST) rejects an empty name', () => {
+    return request(app.getHttpServer())
+      .post('/projects')
+      .send({ name: '' })
+      .expect(400);
+  });
+
+  it('/projects (POST) rejects an unexpected property', () => {
+    return request(app.getHttpServer())
+      .post('/projects')
+      .send({ name: 'My Project', isAdmin: true })
+      .expect(400);
   });
 
   afterEach(async () => {

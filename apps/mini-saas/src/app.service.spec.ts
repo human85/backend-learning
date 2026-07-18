@@ -18,4 +18,12 @@ describe('AppService', () => {
       expect(appService.getHealth()).toEqual({ status: 'ok' });
     });
   });
+
+  describe('createProject', () => {
+    it('should return the created project', () => {
+      expect(appService.createProject('My Project')).toEqual({
+        name: 'My Project',
+      });
+    });
+  });
 });

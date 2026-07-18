@@ -9,4 +9,8 @@ export class AppService {
   getHealth(): { status: string } {
     return { status: 'ok' };
   }
+
+  createProject(name: string): { name: string } {
+    return { name };
+  }
 }

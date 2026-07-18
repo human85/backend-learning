@@ -14,7 +14,7 @@
 - 阶段：工程组织与 NestJS 基础
 - 状态：进行中
 - 当前焦点项目：`apps/mini-saas/`
-- 实践进度：仓库已迁移为 pnpm workspace；Mini SaaS 已新增 `GET /health`，并通过 Controller、Service 和 e2e 三个测试视角验证请求链路
+- 实践进度：Mini SaaS 已实现 `GET /health` 和带 DTO 校验的 `POST /projects`；能够通过单元测试、e2e 和真实 HTTP 请求观察完整链路
 
 ## 已接触的知识
 
@@ -28,17 +28,19 @@
 | NestJS 启动与请求阶段 | 理解中 | 已能区分 `main.ts` 启动应用与 Controller、Service 处理请求 |
 | 依赖注入 | 理解中 | 已理解 Controller 不负责创建 Service，并观察了 `useValue` 测试替换 |
 | 单元测试与 e2e | 理解中 | 已能根据 mock 和真实应用的执行边界判断测试结果 |
+| DTO 与运行时校验 | 理解中 | 已能区分 TypeScript 类型描述与 ValidationPipe 的实际校验职责 |
+| 白名单输入 | 理解中 | 已理解 `whitelist` 清理字段、`forbidNonWhitelisted` 拒绝额外字段 |
 
 ## 当前学习任务
 
-通过 `GET /health` 巩固 Controller、Service、依赖注入和测试边界，理解同一行为为什么需要不同层次的验证。
+理解 NestJS feature module 的作用，将暂存在根 AppController/AppService 中的项目创建行为重构为独立 ProjectsModule。
 
 ## 下一步完成标准
 
-- 能说明 `@Get('health')`、Controller 和 Service 在请求链路中的职责。
-- 能解释 `provide: AppService` 与 `useValue` 如何替换测试依赖。
-- 能区分 Controller 单元测试、Service 单元测试和 e2e 测试各自能发现的问题。
-- 下一项新内容是 HTTP 输入、DTO 与参数校验。
+- 能解释为什么项目领域不应长期堆在根 AppController 和 AppService 中。
+- 能说明 ProjectsModule 如何注册自己的 Controller 和 Service。
+- 完成移动后保持 `POST /projects` 的行为和测试不变。
+- 暂不接入数据库，先建立清晰的领域边界。
 
 ## 困惑与阻塞
 
