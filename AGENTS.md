@@ -15,6 +15,18 @@
 - 遇到学习者提问时先回答问题本身，不擅自扩展或修改大量代码。
 - 如果学习者时间有限，提供约 10 分钟可读完的概念课程，无需强行进入编码。
 
+## 学习档案与上下文恢复
+
+`docs/` 是本项目的学习档案，也是跨设备、跨 Agent 延续教学的事实来源。开始新的学习任务前，Agent 必须按以下顺序恢复上下文：
+
+1. 阅读 `docs/README.md`，了解文档职责和维护方式。
+2. 阅读 `docs/learning-progress.md`，确认学习者背景、当前阶段、掌握程度和明确的下一步。
+3. 阅读 `docs/learning-log.md` 的最新记录，了解最近一次学习过程。
+4. 查看 `docs/roadmap.md`，确认当前内容在整体路线中的位置。
+5. 按需查阅 `docs/notes/` 和 `docs/decisions.md`，并与当前代码、Git 状态相互验证。
+
+完成一次实际课程或练习后，应同步维护学习档案：更新 `learning-progress.md` 的当前快照，在 `learning-log.md` 追加带日期的记录；只有阶段状态变化时才更新路线图；形成可复用知识时写入 `notes/`；出现长期有效的技术或教学取舍时记录到 `decisions.md`。不要把计划写成已完成，也不要未经提问或练习就声称学习者已经掌握。若文档与代码不一致，应先核查，再修正文档并说明原因。
+
 ## 项目结构
 
 这是一个 NestJS 11 TypeScript 项目。`src/main.ts` 启动应用，`app.module.ts` 组织依赖，Controller 接收 HTTP 请求，Service 承载业务逻辑。单元测试与源码放在一起，命名为 `*.spec.ts`；端到端测试放在 `test/`，命名为 `*.e2e-spec.ts`。新增功能应按领域组织，例如 `src/projects/`，但只在课程需要时创建对应层次。
@@ -38,4 +50,4 @@
 
 ## 提交与变更说明
 
-当前目录没有可参考的 Git 历史。如需初始化版本管理，建议使用 `feat(projects): add project creation` 这类 Conventional Commit 格式。每次变更保持小而聚焦，并在交付时说明学到了什么、修改了什么、如何验证，以及下一步适合学习什么。
+Git 历史使用 Conventional Commit 风格，例如 `feat(projects): add project creation`、`docs: update learning progress`。每次变更保持小而聚焦；相关课程代码和学习档案应一起提交。Agent 应在一个知识点、练习或文档阶段形成完整且已验证的结果后主动提交，无需为正常提交单独询问学习者；不得擅自推送远端、改写历史或执行破坏性 Git 操作。交付时说明学到了什么、修改了什么、如何验证，以及下一步适合学习什么。
