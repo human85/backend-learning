@@ -14,7 +14,7 @@
 - 阶段：工程组织与 NestJS 基础
 - 状态：进行中
 - 当前焦点项目：`apps/mini-saas/`
-- 实践进度：仓库已迁移为 pnpm workspace，根级命令验证通过；Mini SaaS 仍为 NestJS 初始模板，尚未开发业务功能
+- 实践进度：仓库已迁移为 pnpm workspace；Mini SaaS 已新增 `GET /health`，并通过 Controller、Service 和 e2e 三个测试视角验证请求链路
 
 ## 已接触的知识
 
@@ -24,18 +24,21 @@
 | 前后端职责边界 | 理解中 | 已理解前端负责体验、后端负责规则和校验 |
 | Controller、Service、Repository 分工 | 理解中 | 已通过“创建项目”示例串联，但尚未编码 |
 | Repository 名称与作用 | 理解中 | 已理解它抽象某类数据的存取入口 |
-| Monorepo 与 pnpm Workspace | 刚接触 | 正在通过仓库迁移学习，尚待学习者复述和独立操作 |
+| Monorepo 与 pnpm Workspace | 理解中 | 已能解释两者区别、依赖归属和根级命令与 `--filter` 的范围 |
+| NestJS 启动与请求阶段 | 理解中 | 已能区分 `main.ts` 启动应用与 Controller、Service 处理请求 |
+| 依赖注入 | 理解中 | 已理解 Controller 不负责创建 Service，并观察了 `useValue` 测试替换 |
+| 单元测试与 e2e | 理解中 | 已能根据 mock 和真实应用的执行边界判断测试结果 |
 
 ## 当前学习任务
 
-通过本次迁移理解 Git 仓库、Monorepo、pnpm Workspace 和 workspace package 的区别，并学会从根目录定位、安装和运行 `apps/mini-saas/`。
+通过 `GET /health` 巩固 Controller、Service、依赖注入和测试边界，理解同一行为为什么需要不同层次的验证。
 
 ## 下一步完成标准
 
-- 能用自己的话说明 Monorepo 和 pnpm Workspace 不是同一个概念。
-- 能解释根 `package.json`、`pnpm-workspace.yaml` 和应用 `package.json` 各自负责什么。
-- 能使用 `pnpm --filter @backend-learning/mini-saas test` 只操作当前应用。
-- 完成后回到默认 `GET /` 请求链路课程。
+- 能说明 `@Get('health')`、Controller 和 Service 在请求链路中的职责。
+- 能解释 `provide: AppService` 与 `useValue` 如何替换测试依赖。
+- 能区分 Controller 单元测试、Service 单元测试和 e2e 测试各自能发现的问题。
+- 下一项新内容是 HTTP 输入、DTO 与参数校验。
 
 ## 困惑与阻塞
 

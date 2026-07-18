@@ -34,3 +34,12 @@
 - 重新生成 workspace 锁文件，确认依赖归属于 `apps/mini-saas` 而不是根项目。
 - 根级构建、单元测试、端到端测试和 lint 全部通过。
 - 当前需要学习者复述 Monorepo 与 Workspace 的区别，然后再回到 `GET /` 请求链路。
+
+## 2026-07-18｜第一个新增接口与测试边界
+
+- 学习者能够解释 Monorepo 与 pnpm Workspace、应用依赖归属以及根级测试与 `--filter` 测试的范围区别。
+- 通过实际命令确认 pnpm 识别根 package 和 `@backend-learning/mini-saas`，并只在应用 package 中运行测试。
+- 区分 `main.ts` 的应用启动阶段与 Controller、Service 的请求处理阶段。
+- 新增 `GET /health`，由 Controller 匹配路由并委托 Service 返回 `{ "status": "ok" }`。
+- 使用 `useValue` 将 Controller 测试中的真实 Service 替换为 mock，理解依赖注入如何支持隔离测试。
+- 增加真实 Service 单元测试和 `/health` e2e 测试，理解 mock 测试与完整请求验证各自的覆盖边界。
