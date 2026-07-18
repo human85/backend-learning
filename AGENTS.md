@@ -59,4 +59,4 @@ Mini SaaS 使用两空格缩进、单引号和尾随逗号。类使用 `PascalCa
 
 ## 提交与变更说明
 
-Git 历史使用 Conventional Commit 风格，例如 `feat(projects): add project creation`、`docs: update learning progress`。每次变更保持小而聚焦；相关课程代码和学习档案应一起提交。Agent 应在一个知识点、练习或文档阶段形成完整且已验证的结果后主动提交，无需为正常提交单独询问学习者；不得擅自推送远端、改写历史或执行破坏性 Git 操作。交付时说明学到了什么、修改了什么、如何验证，以及下一步适合学习什么。
+Git 历史使用 Conventional Commit 风格，例如 `feat(projects): add project creation`、`docs: update learning progress`。每次变更保持小而聚焦；相关课程代码和学习档案应一起提交。Agent 应在一个知识点、练习或文档阶段形成完整且已验证的结果后主动提交，并将当前分支正常推送到已配置的远端，以便多设备同步，无需为正常提交和推送单独询问学习者；不得改写历史、强制推送或执行破坏性 Git 操作。交付时说明学到了什么、修改了什么、如何验证，以及下一步适合学习什么。
