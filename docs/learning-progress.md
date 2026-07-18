@@ -14,7 +14,7 @@
 - 阶段：工程组织与 NestJS 基础
 - 状态：进行中
 - 当前焦点项目：`apps/mini-saas/`
-- 实践进度：Mini SaaS 已实现 `GET /health` 和带 DTO 校验的 `POST /projects`；能够通过单元测试、e2e 和真实 HTTP 请求观察完整链路
+- 实践进度：Mini SaaS 已实现 `GET /health` 和带 DTO 校验的 `POST /projects`；项目领域已从根 AppController/AppService 重构为独立 ProjectsModule
 
 ## 已接触的知识
 
@@ -30,17 +30,18 @@
 | 单元测试与 e2e | 理解中 | 已能根据 mock 和真实应用的执行边界判断测试结果 |
 | DTO 与运行时校验 | 理解中 | 已能区分 TypeScript 类型描述与 ValidationPipe 的实际校验职责 |
 | 白名单输入 | 理解中 | 已理解 `whitelist` 清理字段、`forbidNonWhitelisted` 拒绝额外字段 |
+| NestJS feature module | 理解中 | 已理解 `imports`、`controllers`、`providers` 的注册关系和缺失时的故障表现 |
 
 ## 当前学习任务
 
-理解 NestJS feature module 的作用，将暂存在根 AppController/AppService 中的项目创建行为重构为独立 ProjectsModule。
+为 ProjectsModule 增加最小内存数据状态，从“校验后回显”推进到能够创建并查询项目，同时理解内存状态不等于数据库持久化。
 
 ## 下一步完成标准
 
-- 能解释为什么项目领域不应长期堆在根 AppController 和 AppService 中。
-- 能说明 ProjectsModule 如何注册自己的 Controller 和 Service。
-- 完成移动后保持 `POST /projects` 的行为和测试不变。
-- 暂不接入数据库，先建立清晰的领域边界。
+- 创建项目时生成 ID，并暂存在应用进程内。
+- 增加 `GET /projects` 返回当前项目列表。
+- 能解释为什么重启应用后内存数据会消失。
+- 使用 Service 单元测试和 e2e 验证创建与查询链路，暂不接入数据库。
 
 ## 困惑与阻塞
 
