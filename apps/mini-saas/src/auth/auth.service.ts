@@ -63,6 +63,16 @@ export class AuthService {
     return this.toPublicUser(user);
   }
 
+  async getCurrentUser(userId: number): Promise<PublicUser> {
+    const user = await this.usersService.findById(userId);
+
+    if (!user) {
+      throw new UnauthorizedException('Authentication required');
+    }
+
+    return this.toPublicUser(user);
+  }
+
   private normalizeEmail(email: string): string {
     return email.trim().toLowerCase();
   }

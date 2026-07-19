@@ -46,6 +46,14 @@ describe('UsersService', () => {
     });
   });
 
+  it('should find a user by id', async () => {
+    const user = { id: 1, email: 'user@example.com' };
+    usersRepository.findOneBy.mockResolvedValue(user);
+
+    await expect(usersService.findById(user.id)).resolves.toEqual(user);
+    expect(usersRepository.findOneBy).toHaveBeenCalledWith({ id: user.id });
+  });
+
   it('should explicitly select credentials for login', async () => {
     const user = {
       id: 1,

@@ -66,3 +66,11 @@
 - 决策：Mini SaaS 使用 Argon2id 哈希密码，显式采用 19 MiB 内存、2 次迭代、并行度 1；第一版密码长度为 15–128 字符，不强制大小写、数字或特殊字符组合。
 - 原因：密码哈希需要刻意消耗时间和内存以提高离线破解成本；当前项目没有 MFA，因此采用无 MFA 场景的最低长度建议，并保留足够的 passphrase 空间。
 - 影响：数据库只保存 PHC 格式哈希，不保存明文密码或独立 salt；登录必须使用 Argon2 verify，响应必须显式排除密码和哈希。
+
+## D-010｜浏览器认证使用服务端 Session
+
+- 日期：2026-07-19
+- 状态：有效
+- 决策：Mini SaaS 第一版使用 HttpOnly Cookie 携带随机 Session ID，Session 状态保存在 PostgreSQL；不在 localStorage 保存身份凭据，也不使用进程内 MemoryStore。
+- 原因：当前应用以浏览器为主要客户端，已经依赖 PostgreSQL；服务端 Session 更容易理解身份状态位置、立即注销和单独撤销，并能在 API 重启或多实例之间继续工作。
+- 影响：sessions 表必须通过 migration 管理；登录后重新生成 Session ID，Cookie 显式设置 HttpOnly、SameSite 和生产环境 Secure；后续部署还要配置 HTTPS、可信代理、CSRF 防护和过期策略。

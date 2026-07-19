@@ -16,7 +16,7 @@
 - 状态：进行中
 - 30 天计划：第 1 周已完成，开始第 2 周
 - 当前焦点项目：`apps/mini-saas/`
-- 实践进度：Projects CRUD 已持久化；注册与登录凭证校验已完成，登录专用查询显式加载密码哈希，失败统一返回 `401`
+- 实践进度：注册、登录和 PostgreSQL Session 身份保持已完成；`/auth/me` 受 Guard 保护，注销会销毁服务端 Session
 
 ## 已接触的知识
 
@@ -52,18 +52,20 @@
 | 用户注册 | 理解中 | 已实现 DTO、邮箱规范化、哈希、数据库唯一竞态映射和安全公开响应，并通过真实 e2e 验证 |
 | 跨模块 Provider | 接触过 | AuthModule 导入 UsersModule，UsersModule 导出 UsersService 供 AuthService 注入 |
 | 登录凭证校验 | 理解中 | 已能识别账号枚举风险和持续身份需求；实现登录专用查询、Argon2 verify 与统一 `401` 并通过 e2e 验证 |
-| Cookie、Session 与 JWT | 接触过 | 已理解登录后仍需持久化身份；正在区分 Cookie 传输载体、服务端 Session 和自包含 JWT 的职责 |
+| Cookie、Session 与 JWT | 理解中 | 已能解释 Session 的服务端状态、进程内存重启丢失和 JWT 单独撤销困难，并区分 Cookie 只是凭据载体 |
+| 服务端 Session | 理解中 | 已使用 PostgreSQL store、HttpOnly/SameSite Cookie 和登录后 Session ID 再生，e2e 验证 API 重启后身份仍有效 |
+| Guard 与当前用户 | 接触过 | SessionAuthGuard 在 Controller 前检查 userId；`GET /auth/me` 再从数据库读取公开用户 |
 
 ## 当前学习任务
 
-选择登录状态保持方案：区分 Cookie、Session 和 JWT 的职责与安全边界，为浏览器端 Mini SaaS 选择第一版方案。
+建立 User 与 Project 的归属和授权边界：新增 ownerId 外键，让认证用户只能访问自己的项目。
 
 ## 下一步完成标准
 
-- 能说明 Cookie 是浏览器保存并自动携带数据的机制，不等同于 Session 或 JWT。
-- 能比较服务端 Session ID Cookie 与 JWT Cookie 的状态位置、注销方式和复杂度。
-- 为当前浏览器端 Mini SaaS 选择一种第一版方案，并说明 CSRF、XSS、过期和密钥配置中的基本边界。
-- 用 e2e 验证登录后能够访问受保护接口，未登录请求被拒绝。
+- Project 建立指向 User 的 ownerId 外键，数据库拒绝不存在的 owner。
+- 创建项目不接受客户端 ownerId，而是从已认证 Session 获取当前 userId。
+- Projects 路由需要登录；查询、更新和删除都只能命中当前用户自己的项目。
+- 单元测试验证 Service 查询条件，e2e 验证未登录和跨用户访问被拒绝。
 
 ## 困惑与阻塞
 

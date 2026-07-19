@@ -27,7 +27,9 @@ describe('AppController (e2e)', () => {
     app = await createTestApp();
     await app
       .get(DataSource)
-      .query('TRUNCATE TABLE "projects", "users" RESTART IDENTITY CASCADE');
+      .query(
+        'TRUNCATE TABLE "projects", "users", "sessions" RESTART IDENTITY CASCADE',
+      );
   });
 
   it('/auth/register creates a user without exposing credentials', async () => {
@@ -159,6 +161,65 @@ describe('AppController (e2e)', () => {
       statusCode: 401,
     });
     expect(unknownEmailResponse.body).toEqual(wrongPasswordResponse.body);
+  });
+
+  it('/auth/me rejects a request without a session', () => {
+    return request(app.getHttpServer()).get('/auth/me').expect(401).expect({
+      message: 'Authentication required',
+      error: 'Unauthorized',
+      statusCode: 401,
+    });
+  });
+
+  it('keeps a login session across an API restart and destroys it on logout', async () => {
+    const password = 'correct horse battery staple';
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ email: 'user@example.com', password })
+      .expect(201);
+
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'user@example.com', password })
+      .expect(200);
+    const setCookieHeaders = loginResponse.headers['set-cookie'] as unknown;
+
+    expect(Array.isArray(setCookieHeaders)).toBe(true);
+    const sessionCookieHeader = (setCookieHeaders as string[])[0];
+    expect(sessionCookieHeader).toContain('mini_saas_session=');
+    expect(sessionCookieHeader).toContain('HttpOnly');
+    expect(sessionCookieHeader).toContain('SameSite=Lax');
+    expect(sessionCookieHeader).toContain('Path=/');
+    const sessionCookie = sessionCookieHeader.split(';')[0];
+
+    await app.close();
+    app = await createTestApp();
+
+    await request(app.getHttpServer())
+      .get('/auth/me')
+      .set('Cookie', sessionCookie)
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          id: 1,
+          email: 'user@example.com',
+        });
+      });
+
+    await request(app.getHttpServer())
+      .post('/auth/logout')
+      .set('Cookie', sessionCookie)
+      .expect(204);
+
+    await request(app.getHttpServer())
+      .get('/auth/me')
+      .set('Cookie', sessionCookie)
+      .expect(401);
+
+    const sessionCountRows: unknown = await app
+      .get(DataSource)
+      .query('SELECT COUNT(*)::int AS count FROM "sessions"');
+    expect(sessionCountRows).toEqual([{ count: 0 }]);
   });
 
   it('/ (GET)', () => {

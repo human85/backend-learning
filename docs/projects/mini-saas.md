@@ -9,9 +9,9 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 路径：`apps/mini-saas/`
 - 技术栈：Node.js、TypeScript、NestJS 11、TypeORM、PostgreSQL 17、Jest
 - 阶段：NestJS、HTTP 与 PostgreSQL 基础完成，进入认证与授权
-- 30 天里程碑：第 2 周，注册与凭证校验已完成，开始身份保持
-- 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；项目接口通过 PostgreSQL 支持创建、列表、按 ID 查询、更新和删除；`POST /auth/register` 支持注册，`POST /auth/login` 支持凭证校验
-- 数据库与认证：Projects CRUD 已持久化；注册与登录使用 Argon2id，认证响应只返回公开用户字段；会话、授权和 Redis 尚未接入
+- 30 天里程碑：第 2 周，注册、登录和 Session 已完成，开始项目归属与授权
+- 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；项目接口通过 PostgreSQL 支持 CRUD；认证支持注册、登录、`GET /auth/me` 和注销
+- 数据库与认证：注册和登录使用 Argon2id；PostgreSQL 保存服务端 Session，HttpOnly Cookie 携带随机 Session ID；项目授权和 Redis 尚未接入
 
 ## 已完成
 
@@ -50,14 +50,19 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - `POST /auth/login` 规范化邮箱并使用 Argon2 verify；邮箱不存在与密码错误都返回相同的 `401 Invalid email or password`，避免通过响应枚举账号。
 - 登录明确返回 `200` 而不是 NestJS POST 默认的 `201`；成功响应继续只含公开用户字段，但尚未签发 Session 或 JWT。
 - 单元测试扩展到 30 项，e2e 扩展到 25 项；构建、lint、真实正确密码及两种统一失败路径全部通过。
+- 新增第三份 migration 创建 sessions 表和过期时间索引；开发库与测试库都执行成功，运行时 store 不负责偷偷建表。
+- 使用 connect-pg-simple 保存 Session；Cookie 显式设置 HttpOnly、SameSite=Lax、Path=/，生产环境启用 Secure，Session Secret 通过环境变量读取。
+- 登录成功后重新生成 Session ID，再把 userId 保存到新 Session；修复并记录 regenerate 会替换 `request.session` 对象引用的真实测试问题。
+- 新增 SessionAuthGuard、`GET /auth/me` 和 `POST /auth/logout`；未登录访问返回 `401`，注销销毁数据库记录并清理 Cookie。
+- 39 个单元测试、27 个 e2e、构建和 lint 全部通过；e2e 关闭并重建 Nest 应用后使用原 Cookie 仍能恢复用户，证明状态不依赖进程内存。
 
 ## 下一项应用课程
 
 实现登录与身份保持：
 
-1. 比较服务端 Session 与 JWT 的状态位置、注销方式和复杂度。
-2. 选择并实现基于 HttpOnly Cookie 的身份保持方案。
-3. 建立认证 Guard 和当前用户上下文。
-4. 建立 User 与 Project 的一对多关系及 `ownerId` 外键，让用户只能操作自己的项目。
+1. 建立 User 与 Project 的一对多关系及 `ownerId` 外键。
+2. 创建项目时从 Session 获取 userId，不接受客户端 ownerId。
+3. 让项目查询、更新和删除只作用于当前用户的数据。
+4. 通过双用户 e2e 验证跨用户访问被拒绝。
 
 完成标准仍以 `docs/learning-progress.md` 的当前快照为准。

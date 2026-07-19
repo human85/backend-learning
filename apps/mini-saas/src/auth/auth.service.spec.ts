@@ -9,6 +9,7 @@ describe('AuthService', () => {
   let authService: AuthService;
   const usersService = {
     findByEmail: jest.fn(),
+    findById: jest.fn(),
     findCredentialsByEmail: jest.fn(),
     create: jest.fn(),
   };
@@ -144,5 +145,28 @@ describe('AuthService', () => {
     await expect(
       authService.login('user@example.com', 'incorrect password'),
     ).rejects.toEqual(new UnauthorizedException('Invalid email or password'));
+  });
+
+  it('should return the current public user for an authenticated session', async () => {
+    const createdAt = new Date('2026-07-19T06:00:00.000Z');
+    usersService.findById.mockResolvedValue({
+      id: 1,
+      email: 'user@example.com',
+      createdAt,
+    });
+
+    await expect(authService.getCurrentUser(1)).resolves.toEqual({
+      id: 1,
+      email: 'user@example.com',
+      createdAt,
+    });
+  });
+
+  it('should reject a session whose user no longer exists', async () => {
+    usersService.findById.mockResolvedValue(null);
+
+    await expect(authService.getCurrentUser(999)).rejects.toEqual(
+      new UnauthorizedException('Authentication required'),
+    );
   });
 });

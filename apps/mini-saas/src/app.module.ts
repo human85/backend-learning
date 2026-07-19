@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { createDatabaseOptions } from './database/database-options';
 import { ProjectsModule } from './projects/projects.module';
+import { SessionModule } from './session/session.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ProjectsModule } from './projects/projects.module';
       useFactory: (configService: ConfigService) =>
         createDatabaseOptions(configService.getOrThrow('DATABASE_URL')),
     }),
+    SessionModule,
     AuthModule,
     ProjectsModule,
   ],

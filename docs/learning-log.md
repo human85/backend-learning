@@ -154,3 +154,13 @@
 - AuthService 使用共享方法规范化邮箱和映射公开用户；登录通过 Argon2 verify 校验，邮箱不存在和密码错误统一返回 `401 Invalid email or password`。
 - AuthController 使用 `@HttpCode(200)` 覆盖 POST 默认 `201`；当前成功响应只证明本次凭证正确，尚未建立后续请求的身份状态。
 - 30 个单元测试、25 个 e2e、构建和 lint 全部通过；下一步比较 Session 与 JWT 并选择第一版身份保持方案。
+
+## 2026-07-19｜使用 PostgreSQL Session 保持登录身份
+
+- 学习者正确解释服务端 Session 可立即删除、进程内 Session 会随重启消失，以及无服务端逐令牌状态的 JWT 难以单独撤销。
+- 选择 HttpOnly Cookie 携带随机 Session ID、PostgreSQL 保存 userId 的方案；明确 Cookie 是载体，Session 才是服务端身份状态。
+- 新增 sessions migration 并在开发库和测试库执行，使用 connect-pg-simple 连接 PostgreSQL，避免 NestJS 明确不建议用于生产的 MemoryStore。
+- Cookie 设置 HttpOnly、SameSite=Lax 和 Path=/，生产环境启用 Secure；SESSION_SECRET 只通过环境变量提供，登录成功后 regenerate Session ID 以降低 Session Fixation 风险。
+- 首次重启 e2e 返回 `401`，定位到 regenerate 会替换 `request.session`，旧对象引用保存了错误状态；改为在回调中从 Request 重新读取新 Session 后通过。
+- 新增 SessionAuthGuard、`GET /auth/me` 和 `POST /auth/logout`；e2e 验证 API 重启后原 Cookie 仍能恢复用户，注销后 Session 行被删除且原 Cookie 返回 `401`。
+- 39 个单元测试、27 个 e2e、构建和 lint 全部通过；下一步建立 Project.ownerId 外键和用户数据授权边界。
