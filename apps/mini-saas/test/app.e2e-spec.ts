@@ -145,6 +145,23 @@ describe('AppController (e2e)', () => {
       .expect(400);
   });
 
+  it('/projects/:id (PATCH) rejects a name over 100 characters', async () => {
+    await request(app.getHttpServer())
+      .post('/projects')
+      .send({ name: 'Original Name' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch('/projects/1')
+      .send({ name: 'a'.repeat(101) })
+      .expect(400);
+
+    return request(app.getHttpServer())
+      .get('/projects/1')
+      .expect(200)
+      .expect({ id: 1, name: 'Original Name' });
+  });
+
   it('/projects/:id (PATCH) returns 404 for a missing project', () => {
     return request(app.getHttpServer())
       .patch('/projects/999')
@@ -180,6 +197,13 @@ describe('AppController (e2e)', () => {
     return request(app.getHttpServer())
       .post('/projects')
       .send({ name: '' })
+      .expect(400);
+  });
+
+  it('/projects (POST) rejects a name over 100 characters', () => {
+    return request(app.getHttpServer())
+      .post('/projects')
+      .send({ name: 'a'.repeat(101) })
       .expect(400);
   });
 

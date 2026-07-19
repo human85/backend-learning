@@ -36,14 +36,17 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 在 ProjectsModule 中用 `forFeature([ProjectEntity])` 注册 Repository，将 Service 的同步数组 CRUD 改为异步数据库 CRUD，并保持 HTTP 路径、状态码和响应结构不变。
 - 使用 mock Repository 保持 Service 单元测试隔离；新增独立 `mini_saas_test` 数据库，每个 e2e 前执行 `TRUNCATE ... RESTART IDENTITY`。
 - 新增 API 重启持久化 e2e：创建项目后关闭并重建 Nest 应用，仍能从 PostgreSQL 查询到原记录；17 个单元测试和 16 个 e2e 全部通过。
+- 将项目名称最大长度提取为共享领域常量，CreateProjectDto、UpdateProjectDto 与 ProjectEntity 统一使用 100；超长创建和更新均在 Controller 前返回 `400`。
+- 先用失败 e2e 复现超长名称进入数据库后产生 `500`，再通过 DTO 修复；直接 SQL 验证数据库允许空字符串、拒绝 `NULL` 和超长值。
+- 观察到失败插入和回滚事务会消耗 PostgreSQL 序列值，确认 `SERIAL` 自动生成 ID 但不保证连续。
 
 ## 下一项应用课程
 
 将项目数据迁移到 PostgreSQL：
 
-1. 对比 DTO 的 `IsNotEmpty` 与 PostgreSQL `NOT NULL`，理解空字符串和 `NULL` 的区别。
-2. 对齐项目名称的 API 最大长度和数据库 `varchar(100)` 限制。
-3. 用 e2e 与直接 SQL 分别观察 API 校验和数据库约束的错误边界。
-4. 完成 PostgreSQL 第一阶段复盘后进入用户与认证领域。
+1. 设计 User 表并理解邮箱唯一约束。
+2. 建立 User 与 Project 的一对多关系及 `ownerId` 外键。
+3. 在数据模型稳定后实现注册、密码哈希和登录。
+4. 让用户只能查询和修改自己的项目。
 
 完成标准仍以 `docs/learning-progress.md` 的当前快照为准。
