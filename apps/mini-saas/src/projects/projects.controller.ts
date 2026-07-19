@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
-import { type Project } from './project.type';
+import { ProjectEntity } from './project.entity';
 import { ProjectsService } from './projects.service';
 
 @Controller('projects')
@@ -20,17 +20,19 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
-  createProject(@Body() createProjectDto: CreateProjectDto): Project {
+  createProject(
+    @Body() createProjectDto: CreateProjectDto,
+  ): Promise<ProjectEntity> {
     return this.projectsService.createProject(createProjectDto.name);
   }
 
   @Get()
-  getProjects(): Project[] {
+  getProjects(): Promise<ProjectEntity[]> {
     return this.projectsService.findAll();
   }
 
   @Get(':id')
-  getProject(@Param('id', ParseIntPipe) id: number): Project {
+  getProject(@Param('id', ParseIntPipe) id: number): Promise<ProjectEntity> {
     return this.projectsService.findOne(id);
   }
 
@@ -38,13 +40,13 @@ export class ProjectsController {
   updateProject(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateProjectDto: UpdateProjectDto,
-  ): Project {
+  ): Promise<ProjectEntity> {
     return this.projectsService.updateProject(id, updateProjectDto.name);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  deleteProject(@Param('id', ParseIntPipe) id: number): void {
-    this.projectsService.deleteProject(id);
+  deleteProject(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    return this.projectsService.deleteProject(id);
   }
 }

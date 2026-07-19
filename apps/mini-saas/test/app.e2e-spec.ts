@@ -2,20 +2,30 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { DataSource } from 'typeorm';
 import { configureApp } from './../src/app.config';
 import { AppModule } from './../src/app.module';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
 
-  beforeEach(async () => {
+  async function createTestApp(): Promise<INestApplication<App>> {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
-    app = moduleFixture.createNestApplication();
-    configureApp(app);
-    await app.init();
+    const testApp = moduleFixture.createNestApplication();
+    configureApp(testApp);
+    await testApp.init();
+
+    return testApp;
+  }
+
+  beforeEach(async () => {
+    app = await createTestApp();
+    await app
+      .get(DataSource)
+      .query('TRUNCATE TABLE "projects" RESTART IDENTITY');
   });
 
   it('/ (GET)', () => {
@@ -60,6 +70,22 @@ describe('AppController (e2e)', () => {
         { id: 1, name: 'Project A' },
         { id: 2, name: 'Project B' },
       ]);
+  });
+
+  it('/projects persists projects after the API restarts', async () => {
+    await request(app.getHttpServer())
+      .post('/projects')
+      .send({ name: 'Persistent Project' })
+      .expect(201)
+      .expect({ id: 1, name: 'Persistent Project' });
+
+    await app.close();
+    app = await createTestApp();
+
+    return request(app.getHttpServer())
+      .get('/projects')
+      .expect(200)
+      .expect([{ id: 1, name: 'Persistent Project' }]);
   });
 
   it('/projects/:id (GET) returns an existing project', async () => {

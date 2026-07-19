@@ -22,6 +22,16 @@ pnpm --filter @backend-learning/mini-saas db:migration:show
 
 真实 `.env` 不会提交；`.env.example` 只记录其他设备需要提供哪些配置。
 
+e2e 使用独立测试数据库，避免清理测试数据时误删开发数据：
+
+```bash
+createdb mini_saas_test
+cp apps/mini-saas/.env.test.example apps/mini-saas/.env.test.local
+pnpm --filter @backend-learning/mini-saas db:migration:run:test
+```
+
+同样需要将 `.env.test.local` 中的 `YOUR_USER` 替换为本机 PostgreSQL 用户。
+
 ## 从仓库根目录运行
 
 ```bash

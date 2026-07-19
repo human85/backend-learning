@@ -1,55 +1,46 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Project } from './project.type';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { ProjectEntity } from './project.entity';
 
 @Injectable()
 export class ProjectsService {
-  private readonly projects: Project[] = [];
-  private nextId = 1;
+  constructor(
+    @InjectRepository(ProjectEntity)
+    private readonly projectsRepository: Repository<ProjectEntity>,
+  ) {}
 
-  createProject(name: string): Project {
-    const project: Project = {
-      id: this.nextId,
-      name,
-    };
+  async createProject(name: string): Promise<ProjectEntity> {
+    const project = this.projectsRepository.create({ name });
 
-    this.nextId += 1;
-    this.projects.push(project);
+    return this.projectsRepository.save(project);
+  }
+
+  findAll(): Promise<ProjectEntity[]> {
+    return this.projectsRepository.find({ order: { id: 'ASC' } });
+  }
+
+  async findOne(id: number): Promise<ProjectEntity> {
+    const project = await this.projectsRepository.findOneBy({ id });
+
+    if (!project) {
+      throw new NotFoundException(`Project with id ${id} not found`);
+    }
 
     return project;
   }
 
-  findAll(): Project[] {
-    return [...this.projects];
+  async updateProject(id: number, name: string): Promise<ProjectEntity> {
+    const project = await this.findOne(id);
+
+    return this.projectsRepository.save({ ...project, name });
   }
 
-  findOne(id: number): Project {
-    return this.projects[this.findProjectIndex(id)];
-  }
+  async deleteProject(id: number): Promise<void> {
+    const result = await this.projectsRepository.delete(id);
 
-  updateProject(id: number, name: string): Project {
-    const projectIndex = this.findProjectIndex(id);
-    const updatedProject: Project = {
-      ...this.projects[projectIndex],
-      name,
-    };
-
-    this.projects[projectIndex] = updatedProject;
-
-    return updatedProject;
-  }
-
-  deleteProject(id: number): void {
-    const projectIndex = this.findProjectIndex(id);
-    this.projects.splice(projectIndex, 1);
-  }
-
-  private findProjectIndex(id: number): number {
-    const projectIndex = this.projects.findIndex((item) => item.id === id);
-
-    if (projectIndex === -1) {
+    if (!result.affected) {
       throw new NotFoundException(`Project with id ${id} not found`);
     }
-
-    return projectIndex;
   }
 }

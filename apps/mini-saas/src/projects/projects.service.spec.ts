@@ -1,76 +1,117 @@
 import { NotFoundException } from '@nestjs/common';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Test, TestingModule } from '@nestjs/testing';
+import { ProjectEntity } from './project.entity';
 import { ProjectsService } from './projects.service';
 
 describe('ProjectsService', () => {
   let projectsService: ProjectsService;
+  const projectsRepository = {
+    create: jest.fn(),
+    save: jest.fn(),
+    find: jest.fn(),
+    findOneBy: jest.fn(),
+    delete: jest.fn(),
+  };
 
-  beforeEach(() => {
-    projectsService = new ProjectsService();
+  beforeEach(async () => {
+    jest.clearAllMocks();
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ProjectsService,
+        {
+          provide: getRepositoryToken(ProjectEntity),
+          useValue: projectsRepository,
+        },
+      ],
+    }).compile();
+
+    projectsService = module.get<ProjectsService>(ProjectsService);
   });
 
-  it('should start with an empty project list', () => {
-    expect(projectsService.findAll()).toEqual([]);
-  });
+  it('should return an empty project list', async () => {
+    projectsRepository.find.mockResolvedValue([]);
 
-  it('should create and store a project', () => {
-    expect(projectsService.createProject('My Project')).toEqual({
-      id: 1,
-      name: 'My Project',
-    });
-    expect(projectsService.findAll()).toEqual([
-      {
-        id: 1,
-        name: 'My Project',
-      },
-    ]);
-  });
-
-  it('should assign sequential project ids', () => {
-    expect(projectsService.createProject('Project A').id).toBe(1);
-    expect(projectsService.createProject('Project B').id).toBe(2);
-  });
-
-  it('should find a project by id', () => {
-    projectsService.createProject('My Project');
-
-    expect(projectsService.findOne(1)).toEqual({
-      id: 1,
-      name: 'My Project',
+    await expect(projectsService.findAll()).resolves.toEqual([]);
+    expect(projectsRepository.find).toHaveBeenCalledWith({
+      order: { id: 'ASC' },
     });
   });
 
-  it('should throw when a project does not exist', () => {
-    expect(() => projectsService.findOne(999)).toThrow(
+  it('should create and save a project', async () => {
+    const unsavedProject = { name: 'My Project' };
+    const savedProject = { id: 1, name: 'My Project' };
+    projectsRepository.create.mockReturnValue(unsavedProject);
+    projectsRepository.save.mockResolvedValue(savedProject);
+
+    await expect(projectsService.createProject('My Project')).resolves.toEqual(
+      savedProject,
+    );
+    expect(projectsRepository.create).toHaveBeenCalledWith({
+      name: 'My Project',
+    });
+    expect(projectsRepository.save).toHaveBeenCalledWith(unsavedProject);
+  });
+
+  it('should find a project by id', async () => {
+    const project = { id: 1, name: 'My Project' };
+    projectsRepository.findOneBy.mockResolvedValue(project);
+
+    await expect(projectsService.findOne(1)).resolves.toEqual(project);
+    expect(projectsRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+  });
+
+  it('should throw when a project does not exist', async () => {
+    projectsRepository.findOneBy.mockResolvedValue(null);
+
+    await expect(projectsService.findOne(999)).rejects.toEqual(
       new NotFoundException('Project with id 999 not found'),
     );
   });
 
-  it('should update an existing project', () => {
-    projectsService.createProject('Old Name');
-
-    expect(projectsService.updateProject(1, 'New Name')).toEqual({
+  it('should update an existing project', async () => {
+    projectsRepository.findOneBy.mockResolvedValue({
+      id: 1,
+      name: 'Old Name',
+    });
+    projectsRepository.save.mockResolvedValue({
       id: 1,
       name: 'New Name',
     });
-    expect(projectsService.findOne(1).name).toBe('New Name');
-  });
 
-  it('should throw when updating a missing project', () => {
-    expect(() => projectsService.updateProject(999, 'New Name')).toThrow(
-      new NotFoundException('Project with id 999 not found'),
+    await expect(projectsService.updateProject(1, 'New Name')).resolves.toEqual(
+      {
+        id: 1,
+        name: 'New Name',
+      },
     );
+    expect(projectsRepository.save).toHaveBeenCalledWith({
+      id: 1,
+      name: 'New Name',
+    });
   });
 
-  it('should delete an existing project', () => {
-    projectsService.createProject('My Project');
+  it('should throw when updating a missing project', async () => {
+    projectsRepository.findOneBy.mockResolvedValue(null);
 
-    projectsService.deleteProject(1);
-
-    expect(projectsService.findAll()).toEqual([]);
+    await expect(
+      projectsService.updateProject(999, 'New Name'),
+    ).rejects.toEqual(new NotFoundException('Project with id 999 not found'));
+    expect(projectsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should throw when deleting a missing project', () => {
-    expect(() => projectsService.deleteProject(999)).toThrow(
+  it('should delete an existing project', async () => {
+    projectsRepository.delete.mockResolvedValue({ affected: 1 });
+
+    await expect(projectsService.deleteProject(1)).resolves.toBeUndefined();
+    expect(projectsRepository.delete).toHaveBeenCalledWith(1);
+  });
+
+  it('should throw when deleting a missing project', async () => {
+    projectsRepository.delete.mockResolvedValue({ affected: 0 });
+
+    await expect(projectsService.deleteProject(999)).rejects.toEqual(
       new NotFoundException('Project with id 999 not found'),
     );
   });

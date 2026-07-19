@@ -110,3 +110,12 @@
 - 在 `synchronize: false` 下生成第一份 migration；执行前确认数据库没有业务表，执行后通过 `psql` 查看真实列、默认序列和主键索引。
 - TypeORM 创建 `migrations` 表保存迁移履历，重复运行显示没有待执行迁移。
 - 应用级数据库连接接入后，18 个单元测试、15 个 e2e、构建和 lint 全部通过；`projects` 表仍为 0 行，因为 ProjectsService 暂时仍使用内存数组。
+
+## 2026-07-19｜将 Projects CRUD 迁移到 Repository
+
+- 学习者正确判断：仅建立 TypeORM 连接不会自动持久化业务数据，ProjectsService 仍使用数组时，API 重启后列表仍为空。
+- ProjectsModule 使用 `forFeature([ProjectEntity])` 注册 Repository Provider；ProjectsService 注入 Repository，并将创建、列表、查询、更新和删除改为异步 PostgreSQL 操作。
+- Controller 返回 Service 的 Promise，尤其删除接口必须等待异步结果，避免响应先于数据库操作和异常发送。
+- Service 单元测试使用 `getRepositoryToken(ProjectEntity)` 注入 mock，删除了不适用于数据库序列的“ID 必须连续”单元测试。
+- 新建独立 `mini_saas_test`，e2e 每次测试前重置业务表和序列，避免清理开发数据；新增关闭并重建 Nest 应用后仍能查询项目的持久化测试。
+- 17 个单元测试、16 个 e2e、构建和 lint 全部通过，开发库与测试库最终均保持 0 行测试数据。

@@ -11,7 +11,7 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 阶段：NestJS 与 HTTP 基础完成，开始 PostgreSQL 持久化
 - 30 天里程碑：第 1 周，进程内 CRUD 已完成，进入 PostgreSQL
 - 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；项目接口支持进程内创建、列表、按 ID 查询、更新和删除
-- 数据库：TypeORM 已连接本机 PostgreSQL 17，第一份 migration 已创建并执行 `projects` 表，Service 尚未改用 Repository；认证、Redis 尚未接入
+- 数据库：Projects CRUD 已使用 TypeORM Repository 持久化到 PostgreSQL 17，开发库与 e2e 测试库分离；认证、Redis 尚未接入
 
 ## 已完成
 
@@ -33,14 +33,17 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 使用 `@nestjs/typeorm`、TypeORM 和 `pg` 建立 PostgreSQL 连接，并通过忽略的 `.env` 与已提交的 `.env.example` 分离本机配置和配置契约。
 - 将 `synchronize` 保持为 `false`，从 ProjectEntity 生成并执行第一份建表 migration；数据库中的 `migrations` 表记录了执行历史。
 - 验证重复执行 migration 不会再次建表；18 个单元测试、15 个 e2e、构建和 lint 在数据库连接接入后继续通过。
+- 在 ProjectsModule 中用 `forFeature([ProjectEntity])` 注册 Repository，将 Service 的同步数组 CRUD 改为异步数据库 CRUD，并保持 HTTP 路径、状态码和响应结构不变。
+- 使用 mock Repository 保持 Service 单元测试隔离；新增独立 `mini_saas_test` 数据库，每个 e2e 前执行 `TRUNCATE ... RESTART IDENTITY`。
+- 新增 API 重启持久化 e2e：创建项目后关闭并重建 Nest 应用，仍能从 PostgreSQL 查询到原记录；17 个单元测试和 16 个 e2e 全部通过。
 
 ## 下一项应用课程
 
 将项目数据迁移到 PostgreSQL：
 
-1. 在 ProjectsModule 注册 `Repository<ProjectEntity>`。
-2. 用 Repository 的异步数据库操作替换 ProjectsService 的内存数组。
-3. 调整单元测试 mock 和 e2e 数据清理，保持现有 HTTP 合同和测试意图。
-4. 通过 API 重启实验和 `psql` 查询验证真实持久化。
+1. 对比 DTO 的 `IsNotEmpty` 与 PostgreSQL `NOT NULL`，理解空字符串和 `NULL` 的区别。
+2. 对齐项目名称的 API 最大长度和数据库 `varchar(100)` 限制。
+3. 用 e2e 与直接 SQL 分别观察 API 校验和数据库约束的错误边界。
+4. 完成 PostgreSQL 第一阶段复盘后进入用户与认证领域。
 
 完成标准仍以 `docs/learning-progress.md` 的当前快照为准。

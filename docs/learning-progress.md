@@ -16,7 +16,7 @@
 - 状态：进行中
 - 30 天计划：第 1 周进行中
 - 当前焦点项目：`apps/mini-saas/`
-- 实践进度：ProjectsModule 已完成进程内 CRUD；TypeORM 已连接本机 PostgreSQL 17，第一份 migration 已创建并执行 `projects` 表，但 Service 尚未从内存数组迁移到 Repository
+- 实践进度：Projects CRUD 已从内存数组迁移到 TypeORM Repository；开发库与测试库分离，e2e 已验证 API 重启后数据仍然存在
 
 ## 已接触的知识
 
@@ -41,17 +41,19 @@
 | DELETE 与 204 | 理解中 | 已理解删除不存在返回 `404`，成功的 `204` 不包含响应体 |
 | TypeORM Entity | 理解中 | 已能说明普通 TypeScript type 会在编译后消失，而 Entity 通过运行时元数据描述表映射 |
 | 数据库迁移 | 理解中 | 已能说明修改 Entity 不会在 `synchronize: false` 时自动改表，并阅读了第一份建表 migration |
+| TypeORM Repository | 理解中 | 已解释“连接数据库”不等于“业务使用数据库”，并通过真实 CRUD 替换内存数组 |
+| 异步数据库 I/O | 理解中 | Service 与 Controller 已改为返回 Promise，Controller 会等待删除完成并传播异常 |
+| 数据库测试隔离 | 接触过 | 单元测试 mock Repository，e2e 使用独立 `mini_saas_test` 并在每个测试前重置表和序列 |
 
 ## 当前学习任务
 
-将 ProjectsService 从内存数组迁移到 TypeORM Repository，同时保持现有 HTTP 合同，并调整测试隔离策略。
+对齐 API 输入校验与数据库列约束：分析超过 100 字符的项目名称为什么会绕过 DTO、被 PostgreSQL 拒绝并形成错误的 HTTP 语义。
 
 ## 下一步完成标准
 
-- 能解释“应用已连接数据库”和“业务数据已经写入数据库”不是同一件事。
-- 能说明 Repository 如何替代数组的增删改查，以及数据库 I/O 为什么使 Service 方法变为异步。
-- 单元测试通过 mock Repository 验证 Service 规则，e2e 使用真实数据库并保持测试隔离。
-- 重启 NestJS 后，Projects CRUD 数据仍然存在。
+- 能区分 DTO 运行时校验与数据库 `varchar(100) NOT NULL` 约束各自拒绝什么输入。
+- 为创建和更新 DTO 增加一致的长度规则，并用 e2e 验证客户端收到 `400` 而不是数据库错误导致的 `500`。
+- 使用 `psql` 直接尝试空字符串、`NULL` 和超长名称，观察数据库约束与 API 规则的差异。
 
 ## 困惑与阻塞
 
