@@ -1,0 +1,2 @@
+export const USER_EMAIL_MAX_LENGTH = 254;
+export const PASSWORD_HASH_MAX_LENGTH = 255;

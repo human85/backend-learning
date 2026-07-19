@@ -11,7 +11,7 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 阶段：NestJS 与 HTTP 基础完成，开始 PostgreSQL 持久化
 - 30 天里程碑：第 1 周，进程内 CRUD 已完成，进入 PostgreSQL
 - 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；项目接口支持进程内创建、列表、按 ID 查询、更新和删除
-- 数据库：Projects CRUD 已使用 TypeORM Repository 持久化到 PostgreSQL 17，开发库与 e2e 测试库分离；认证、Redis 尚未接入
+- 数据库：Projects CRUD 已持久化；users 表、邮箱唯一约束和创建时间默认值已通过第二份 migration 加入开发库与测试库；认证、Redis 尚未接入
 
 ## 已完成
 
@@ -39,14 +39,17 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 将项目名称最大长度提取为共享领域常量，CreateProjectDto、UpdateProjectDto 与 ProjectEntity 统一使用 100；超长创建和更新均在 Controller 前返回 `400`。
 - 先用失败 e2e 复现超长名称进入数据库后产生 `500`，再通过 DTO 修复；直接 SQL 验证数据库允许空字符串、拒绝 `NULL` 和超长值。
 - 观察到失败插入和回滚事务会消耗 PostgreSQL 序列值，确认 `SERIAL` 自动生成 ID 但不保证连续。
+- 新增 UserEntity：邮箱 `varchar(254) NOT NULL UNIQUE`、密码哈希 `varchar(255) NOT NULL`、数据库自动生成的 `created_at`。
+- 在开发库和测试库执行第二份 migration；直接 SQL 验证重复邮箱被唯一约束拒绝，同时确认 `select: false` 不会阻止数据库查询返回 `password_hash`。
+- 新增用户表后，17 个单元测试、18 个 e2e、构建和 lint 继续通过。
 
 ## 下一项应用课程
 
 将项目数据迁移到 PostgreSQL：
 
-1. 设计 User 表并理解邮箱唯一约束。
-2. 建立 User 与 Project 的一对多关系及 `ownerId` 外键。
-3. 在数据模型稳定后实现注册、密码哈希和登录。
-4. 让用户只能查询和修改自己的项目。
+1. 实现注册 DTO、邮箱规范化与密码哈希。
+2. 只返回 User 的公开字段，并将重复邮箱映射为 `409`。
+3. 实现登录和身份认证。
+4. 建立 User 与 Project 的一对多关系及 `ownerId` 外键，让用户只能操作自己的项目。
 
 完成标准仍以 `docs/learning-progress.md` 的当前快照为准。
