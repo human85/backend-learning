@@ -94,3 +94,19 @@
 - 单元测试扩展到 18 项，e2e 扩展到 15 项，完整覆盖创建、列表、单项查询、更新和删除的核心路径；lint 与构建通过。
 - 通过删除 `@HttpCode(204)` 的假设审查，理解直接调用方法的单元测试看不到框架响应元数据，e2e 才能发现实际状态码回退为 `200`。
 - 进程内 CRUD 学习目标已完成，按照 30 天路线不再扩展临时存储，下一步进入 PostgreSQL。
+
+## 2026-07-19｜确定 NestJS 与 Hono 的数据库工具路线
+
+- 安装并启动本机 PostgreSQL 17.10，在 Mini SaaS API 未运行时通过 `psql` 验证数据库能够独立接受连接。
+- 理解 API DTO 校验负责尽早返回清晰错误，数据库约束负责保护所有写入路径的数据正确性。
+- 对比 TypeORM 与 Drizzle：TypeORM 与 NestJS 的 Module、Provider 和 Repository 注入结合更紧密；Drizzle 的查询结构更接近 SQL。
+- 决定当前 Mini SaaS 使用 NestJS + TypeORM，后续 Hono 对照项目使用 Drizzle，以两个项目比较框架抽象和 SQL 可见性。
+- 两条路线都保留 SQL 学习：阅读迁移、观察生成查询，并通过 `psql` 手写关键语句。
+
+## 2026-07-19｜建立 TypeORM 连接与第一份迁移
+
+- 安装 `@nestjs/typeorm`、TypeORM 和 `pg`，通过 ConfigModule 读取未提交的 `DATABASE_URL`，并让 Nest 与迁移 CLI 复用同一个数据库配置函数。
+- 新增 ProjectEntity，将 `id` 映射为 PostgreSQL `SERIAL` 主键，将 `name` 映射为 `varchar(100) NOT NULL`；明确序列自增不保证 ID 连续，数据库 `NOT NULL` 也不拒绝空字符串。
+- 在 `synchronize: false` 下生成第一份 migration；执行前确认数据库没有业务表，执行后通过 `psql` 查看真实列、默认序列和主键索引。
+- TypeORM 创建 `migrations` 表保存迁移履历，重复运行显示没有待执行迁移。
+- 应用级数据库连接接入后，18 个单元测试、15 个 e2e、构建和 lint 全部通过；`projects` 表仍为 0 行，因为 ProjectsService 暂时仍使用内存数组。

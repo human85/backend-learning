@@ -16,7 +16,7 @@
 - 状态：进行中
 - 30 天计划：第 1 周进行中
 - 当前焦点项目：`apps/mini-saas/`
-- 实践进度：ProjectsModule 已完成进程内 CRUD，覆盖输入校验、路径参数、`400`、`404` 和删除成功的 `204`；下一步迁移到 PostgreSQL
+- 实践进度：ProjectsModule 已完成进程内 CRUD；TypeORM 已连接本机 PostgreSQL 17，第一份 migration 已创建并执行 `projects` 表，但 Service 尚未从内存数组迁移到 Repository
 
 ## 已接触的知识
 
@@ -39,17 +39,19 @@
 | HTTP 400 与 404 | 理解中 | 已能区分输入格式无效和格式有效但资源不存在 |
 | PATCH 与更新边界 | 理解中 | 已理解只开放可更新字段，服务端 ID 不接受客户端覆盖 |
 | DELETE 与 204 | 理解中 | 已理解删除不存在返回 `404`，成功的 `204` 不包含响应体 |
+| TypeORM Entity | 理解中 | 已能说明普通 TypeScript type 会在编译后消失，而 Entity 通过运行时元数据描述表映射 |
+| 数据库迁移 | 理解中 | 已能说明修改 Entity 不会在 `synchronize: false` 时自动改表，并阅读了第一份建表 migration |
 
 ## 当前学习任务
 
-进入 PostgreSQL 基础：理解数据库进程、表、行、主键、约束和迁移，并为 Mini SaaS 选择 ORM 与本地运行方式。
+将 ProjectsService 从内存数组迁移到 TypeORM Repository，同时保持现有 HTTP 合同，并调整测试隔离策略。
 
 ## 下一步完成标准
 
-- 能解释内存数组和数据库持久化在生命周期与多实例共享上的差异。
-- 能说明 Project 表至少需要哪些列、主键和约束。
-- 理解迁移为什么比应用启动时自动改表更可靠。
-- 确定 ORM 与本地 PostgreSQL 运行方案，并建立第一份可验证连接。
+- 能解释“应用已连接数据库”和“业务数据已经写入数据库”不是同一件事。
+- 能说明 Repository 如何替代数组的增删改查，以及数据库 I/O 为什么使 Service 方法变为异步。
+- 单元测试通过 mock Repository 验证 Service 规则，e2e 使用真实数据库并保持测试隔离。
+- 重启 NestJS 后，Projects CRUD 数据仍然存在。
 
 ## 困惑与阻塞
 
