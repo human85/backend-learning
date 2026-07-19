@@ -14,7 +14,7 @@
 - 阶段：工程组织与 NestJS 基础
 - 状态：进行中
 - 当前焦点项目：`apps/mini-saas/`
-- 实践进度：ProjectsModule 已使用默认单例 Service 保存进程内项目状态；`POST /projects` 生成 ID，`GET /projects` 返回当前列表
+- 实践进度：ProjectsModule 已支持进程内创建、列表和按 ID 查询；路径参数通过 ParseIntPipe 转换，不存在的项目返回 `404`
 
 ## 已接触的知识
 
@@ -33,17 +33,19 @@
 | NestJS feature module | 理解中 | 已理解 `imports`、`controllers`、`providers` 的注册关系和缺失时的故障表现 |
 | Provider 实例状态 | 理解中 | 已能解释同一应用内请求共享 Service 状态，而 e2e 的新应用实例会重置数组 |
 | 内存数据与持久化 | 理解中 | 已理解进程重启、重新实例化或多实例部署不会共享当前数组 |
+| 路径参数与 Pipe | 理解中 | 已理解 HTTP 参数运行时是字符串，ParseIntPipe 在 Controller 前转换或返回 `400` |
+| HTTP 400 与 404 | 理解中 | 已能区分输入格式无效和格式有效但资源不存在 |
 
 ## 当前学习任务
 
-增加 `GET /projects/:id`，学习路径参数、运行时数字转换以及找不到资源时的 `404 Not Found`。
+完成项目更新与删除，学习 PATCH 的部分更新语义、DELETE 的状态码和修改内存集合时的业务规则。
 
 ## 下一步完成标准
 
-- 使用 `@Param()` 读取路径参数，并通过 Pipe 将字符串转换为数字。
-- ProjectsService 能按 ID 查询单个项目。
-- 找不到项目时由后端返回 `404`，而不是 `undefined` 或 `200`。
-- 使用单元测试和 e2e 覆盖成功与不存在两条路径。
+- 增加 UpdateProjectDto，只允许提交需要修改的字段。
+- 使用 `PATCH /projects/:id` 更新项目名称。
+- 使用 `DELETE /projects/:id` 删除项目，并选择合适的成功状态码。
+- 更新或删除不存在的项目时保持一致的 `404` 行为。
 
 ## 困惑与阻塞
 

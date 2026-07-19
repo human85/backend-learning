@@ -69,3 +69,11 @@
 - Service 单元测试验证初始空列表、创建后保存和顺序 ID；e2e 在同一应用实例中连续创建两个项目并查询列表。
 - 理解 Nest Provider 默认单例让同一应用进程内的请求共享状态；e2e 的 `beforeEach` 会创建新应用和新 Service，使不同测试相互隔离。
 - 明确内存数组会随应用重启消失，也不能在多个服务实例之间共享，因此不等同于数据库持久化。
+
+## 2026-07-19｜路径参数、Pipe 与资源不存在
+
+- 增加 `GET /projects/:id`，使用 `@Param()` 读取路径参数，并通过 ParseIntPipe 在 Controller 执行前将字符串转换为数字。
+- 区分 `abc` 无法转换时的 `400 Bad Request`，以及 `999` 格式有效但资源不存在时的 `404 Not Found`。
+- ProjectsService 使用 `Array.find()` 查询项目，不存在时抛出带明确消息的 NotFoundException。
+- Service 单元测试覆盖真实查询与不存在分支；e2e 覆盖存在、非数字参数和数字 ID 不存在三条 HTTP 路径。
+- 通过删除 ParseIntPipe 的假设审查，理解 Controller 和 Service 单元测试直接传入数字并绕过 HTTP 转换，只有 e2e 能发现路径参数仍是字符串的问题。

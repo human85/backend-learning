@@ -62,6 +62,33 @@ describe('AppController (e2e)', () => {
       ]);
   });
 
+  it('/projects/:id (GET) returns an existing project', async () => {
+    await request(app.getHttpServer())
+      .post('/projects')
+      .send({ name: 'My Project' })
+      .expect(201);
+
+    return request(app.getHttpServer())
+      .get('/projects/1')
+      .expect(200)
+      .expect({ id: 1, name: 'My Project' });
+  });
+
+  it('/projects/:id (GET) rejects a non-numeric id', () => {
+    return request(app.getHttpServer()).get('/projects/abc').expect(400);
+  });
+
+  it('/projects/:id (GET) returns 404 for a missing project', () => {
+    return request(app.getHttpServer())
+      .get('/projects/999')
+      .expect(404)
+      .expect({
+        message: 'Project with id 999 not found',
+        error: 'Not Found',
+        statusCode: 404,
+      });
+  });
+
   it('/projects (POST) rejects a non-string name', () => {
     return request(app.getHttpServer())
       .post('/projects')

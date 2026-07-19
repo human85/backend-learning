@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 
 describe('ProjectsService', () => {
@@ -27,5 +28,20 @@ describe('ProjectsService', () => {
   it('should assign sequential project ids', () => {
     expect(projectsService.createProject('Project A').id).toBe(1);
     expect(projectsService.createProject('Project B').id).toBe(2);
+  });
+
+  it('should find a project by id', () => {
+    projectsService.createProject('My Project');
+
+    expect(projectsService.findOne(1)).toEqual({
+      id: 1,
+      name: 'My Project',
+    });
+  });
+
+  it('should throw when a project does not exist', () => {
+    expect(() => projectsService.findOne(999)).toThrow(
+      new NotFoundException('Project with id 999 not found'),
+    );
   });
 });

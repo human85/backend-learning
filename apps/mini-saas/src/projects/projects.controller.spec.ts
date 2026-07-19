@@ -14,6 +14,10 @@ describe('ProjectsController', () => {
         name: 'My Project',
       },
     ]),
+    findOne: jest.fn().mockReturnValue({
+      id: 1,
+      name: 'My Project',
+    }),
   };
 
   beforeEach(async () => {
@@ -48,5 +52,13 @@ describe('ProjectsController', () => {
       },
     ]);
     expect(projectsService.findAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('should delegate finding one project to the service', () => {
+    expect(projectsController.getProject(1)).toEqual({
+      id: 1,
+      name: 'My Project',
+    });
+    expect(projectsService.findOne).toHaveBeenCalledWith(1);
   });
 });
