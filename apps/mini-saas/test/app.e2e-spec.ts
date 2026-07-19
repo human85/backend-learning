@@ -53,6 +53,16 @@ describe('AppController (e2e)', () => {
       );
   });
 
+  it('allows the frontend origin to make credentialed requests', () => {
+    return request(app.getHttpServer())
+      .options('/auth/me')
+      .set('Origin', 'http://localhost:5173')
+      .set('Access-Control-Request-Method', 'GET')
+      .expect(204)
+      .expect('Access-Control-Allow-Origin', 'http://localhost:5173')
+      .expect('Access-Control-Allow-Credentials', 'true');
+  });
+
   it('/auth/register creates a user without exposing credentials', async () => {
     const password = 'correct horse battery staple';
     const response = await request(app.getHttpServer())

@@ -12,11 +12,11 @@
 
 ## 当前阶段
 
-- 阶段：数据边界、认证与授权
+- 阶段：前后端联调与本地工程化
 - 状态：进行中
-- 30 天计划：第 1 周已完成，开始第 2 周
+- 30 天计划：第 1、2 周已完成，开始第 3 周
 - 当前焦点项目：`apps/mini-saas/`
-- 实践进度：注册、登录和 PostgreSQL Session 已完成；Project 已建立 ownerId 外键，所有 CRUD 都限制为当前 Session 用户的数据
+- 实践进度：注册、登录、PostgreSQL Session 和 Project 归属授权已完成；API 已允许本地前端来源携带 Cookie，开始接入前端
 
 ## 已接触的知识
 
@@ -57,17 +57,19 @@
 | Guard 与当前用户 | 接触过 | SessionAuthGuard 在 Controller 前检查 userId；`GET /auth/me` 再从数据库读取公开用户 |
 | 一对多与外键 | 理解中 | Project.ownerId 非空引用 User.id，直接 SQL 写入不存在 owner 被 PostgreSQL 拒绝，删除策略为 RESTRICT |
 | 资源归属授权 | 理解中 | 已判断登录不等于拥有资源；Projects 的创建、列表、查询、更新和删除都使用 Session userId 限定范围 |
+| CORS 与凭证请求 | 接触过 | 已亲手配置指定前端 origin 和 credentials，并通过预检 e2e 验证响应头；正在区分浏览器 CORS、Cookie 和后端认证职责 |
+| 第三方类型边界 | 接触过 | 发现 NestJS `enableCors` 参数为 `any` 导致无补全，使用显式 CorsOptions 恢复配置对象的类型检查 |
 
 ## 当前学习任务
 
-审查项目授权链路，确认 Guard、Session、Service 查询条件和数据库外键各自解决的问题，再进入前端联调。
+确定 Mini SaaS 前端的技术方案和 workspace 边界，建立最小前端应用并接入注册、登录与 `/auth/me`。
 
 ## 下一步完成标准
 
-- 能指出删除任意一个 ownerId 查询条件会造成的越权路径。
-- 能区分 `401` 未认证、`404` 资源不存在或不属于当前用户，以及外键错误。
-- 能从一次 Projects 请求追踪 Cookie → Session middleware → Guard → Controller → Service → Repository → PostgreSQL。
-- 确认授权审查后，开始前端接入注册、登录和 Projects API。
+- 前端能够向 API 发起包含 `credentials: 'include'` 的请求。
+- 能通过注册、登录和 `/auth/me` 观察 Cookie Session 的建立与恢复。
+- 能区分前端可展示的 API 错误、浏览器 CORS 错误和真正的网络错误。
+- 确定一处统一的前端 API 请求封装，避免每个请求遗漏 credentials。
 
 ## 困惑与阻塞
 

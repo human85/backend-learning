@@ -173,3 +173,11 @@
 - ProjectsController 整体挂载 SessionAuthGuard，所有 CRUD 从 Session 获取 userId；ProjectsService 的 Repository 查询和删除条件均包含 ownerId。
 - 双用户 e2e 验证未登录返回 `401`，用户 A 对用户 B 项目的列表、查询、更新和删除都无法越权且单项操作统一返回 `404`。
 - 直接 SQL 写入不存在的 owner_id 被 PostgreSQL 外键拒绝；39 个单元测试、30 个 e2e、构建和 lint 全部通过。
+
+## 2026-07-19｜开始前后端凭证联调
+
+- 完成授权链路审查：区分未认证 `401`、已登录但资源不属于当前用户的 `404`、Service ownerId 条件和数据库外键各自保护的边界。
+- 学习浏览器 CORS 与后端认证的区别：CORS 由浏览器执行，Postman 和 curl 不受限制，不能代替 SessionAuthGuard。
+- 学习者亲手在共享 `configureApp()` 中配置指定的本地前端 origin 和 credentials，避免生产启动与 e2e 配置漂移。
+- 发现 `INestApplication.enableCors()` 的 options 参数为 `any`，因此编辑器无法补全或检查属性；将配置对象显式标注为 CorsOptions，恢复类型约束。
+- 新增预检 e2e，验证 `Access-Control-Allow-Origin` 与 `Access-Control-Allow-Credentials`；39 个单元测试、31 个 e2e、构建和 lint 全部通过。

@@ -8,8 +8,8 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 
 - 路径：`apps/mini-saas/`
 - 技术栈：Node.js、TypeScript、NestJS 11、TypeORM、PostgreSQL 17、Jest
-- 阶段：NestJS、HTTP 与 PostgreSQL 基础完成，进入认证与授权
-- 30 天里程碑：第 2 周核心行为已完成，正在审查授权边界
+- 阶段：NestJS、PostgreSQL、认证授权基础完成，进入前后端联调
+- 30 天里程碑：第 2 周已完成，开始第 3 周
 - 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；认证支持注册、登录、当前用户和注销；已登录用户只能 CRUD 自己的项目
 - 数据库与认证：注册和登录使用 Argon2id；PostgreSQL 保存服务端 Session；Project.ownerId 非空外键指向 User，所有查询按当前用户隔离
 
@@ -59,15 +59,17 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - ProjectsController 整体使用 SessionAuthGuard，创建时从 Session 读取 userId；CreateProjectDto 不开放 ownerId，客户端伪造归属返回 `400`。
 - ProjectsService 的列表、单项、更新和删除都把 ownerId 放进 Repository 条件；访问不存在或属于其他用户的项目统一返回 `404`。
 - 双用户 e2e 验证用户 A 无法列出、读取、修改或删除用户 B 的项目；直接 SQL 写入不存在 owner 被 PostgreSQL 外键拒绝。
-- 39 个单元测试、30 个 e2e、构建和 lint 全部通过；下一步完成授权代码审查后进入前端联调。
+- 39 个单元测试、30 个 e2e、构建和 lint 全部通过，随后完成授权代码审查。
+- 学习者亲手在共享 `configureApp()` 中配置 CORS，只允许本地前端来源并支持凭证请求；显式使用 CorsOptions 弥补 NestJS 通用应用接口的 `any` 参数边界。
+- 新增 OPTIONS 预检 e2e，验证允许来源和凭证响应头；39 个单元测试、31 个 e2e、构建和 lint 全部通过。
 
 ## 下一项应用课程
 
-完成授权审查并开始前端联调：
+开始前端联调：
 
-1. 从 Cookie 追踪一次项目请求到数据库 ownerId 条件。
-2. 审查删除 Guard、ownerId 条件或外键分别会产生什么问题。
-3. 确定前端应用接入方式并实现注册、登录、当前用户和注销。
+1. 确定前端技术方案和 workspace 位置。
+2. 建立统一 API 请求封装，默认携带 Cookie。
+3. 实现注册、登录、当前用户和注销。
 4. 接入只属于当前用户的 Projects CRUD。
 
 完成标准仍以 `docs/learning-progress.md` 的当前快照为准。
