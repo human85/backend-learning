@@ -23,6 +23,27 @@ describe('AppController (e2e)', () => {
     return testApp;
   }
 
+  async function createAuthenticatedClient(email = 'owner@example.com') {
+    const password = 'correct horse battery staple';
+    const agent = request.agent(app.getHttpServer());
+
+    await agent.post('/auth/register').send({ email, password }).expect(201);
+    const loginResponse = await agent
+      .post('/auth/login')
+      .send({ email, password })
+      .expect(200);
+    const setCookieHeaders = loginResponse.headers['set-cookie'] as unknown;
+
+    if (!Array.isArray(setCookieHeaders)) {
+      throw new Error('Login response did not include a session cookie');
+    }
+
+    return {
+      agent,
+      cookie: (setCookieHeaders as string[])[0].split(';')[0],
+    };
+  }
+
   beforeEach(async () => {
     app = await createTestApp();
     await app
@@ -236,176 +257,211 @@ describe('AppController (e2e)', () => {
       .expect({ status: 'ok' });
   });
 
-  it('/projects (POST) accepts a valid project', () => {
-    return request(app.getHttpServer())
-      .post('/projects')
-      .send({ name: 'My Project' })
-      .expect(201)
-      .expect({ id: 1, name: 'My Project' });
-  });
+  describe('project authorization', () => {
+    let ownerClient: Awaited<ReturnType<typeof createAuthenticatedClient>>;
 
-  it('/projects (GET) returns projects created in the same app process', async () => {
-    await request(app.getHttpServer())
-      .post('/projects')
-      .send({ name: 'Project A' })
-      .expect(201)
-      .expect({ id: 1, name: 'Project A' });
+    beforeEach(async () => {
+      ownerClient = await createAuthenticatedClient();
+    });
 
-    await request(app.getHttpServer())
-      .post('/projects')
-      .send({ name: 'Project B' })
-      .expect(201)
-      .expect({ id: 2, name: 'Project B' });
+    it('/projects rejects an unauthenticated request', () => {
+      return request(app.getHttpServer()).get('/projects').expect(401);
+    });
 
-    return request(app.getHttpServer())
-      .get('/projects')
-      .expect(200)
-      .expect([
-        { id: 1, name: 'Project A' },
-        { id: 2, name: 'Project B' },
-      ]);
-  });
+    it('/projects (POST) assigns the authenticated user as owner', () => {
+      return ownerClient.agent
+        .post('/projects')
+        .send({ name: 'My Project' })
+        .expect(201)
+        .expect({ id: 1, name: 'My Project', ownerId: 1 });
+    });
 
-  it('/projects persists projects after the API restarts', async () => {
-    await request(app.getHttpServer())
-      .post('/projects')
-      .send({ name: 'Persistent Project' })
-      .expect(201)
-      .expect({ id: 1, name: 'Persistent Project' });
+    it('/projects (POST) rejects a client-provided ownerId', () => {
+      return ownerClient.agent
+        .post('/projects')
+        .send({ name: 'My Project', ownerId: 999 })
+        .expect(400);
+    });
 
-    await app.close();
-    app = await createTestApp();
+    it('/projects (GET) returns only projects owned by the current user', async () => {
+      await ownerClient.agent
+        .post('/projects')
+        .send({ name: 'Project A' })
+        .expect(201)
+        .expect({ id: 1, name: 'Project A', ownerId: 1 });
 
-    return request(app.getHttpServer())
-      .get('/projects')
-      .expect(200)
-      .expect([{ id: 1, name: 'Persistent Project' }]);
-  });
+      await ownerClient.agent
+        .post('/projects')
+        .send({ name: 'Project B' })
+        .expect(201)
+        .expect({ id: 2, name: 'Project B', ownerId: 1 });
 
-  it('/projects/:id (GET) returns an existing project', async () => {
-    await request(app.getHttpServer())
-      .post('/projects')
-      .send({ name: 'My Project' })
-      .expect(201);
+      return ownerClient.agent
+        .get('/projects')
+        .expect(200)
+        .expect([
+          { id: 1, name: 'Project A', ownerId: 1 },
+          { id: 2, name: 'Project B', ownerId: 1 },
+        ]);
+    });
 
-    return request(app.getHttpServer())
-      .get('/projects/1')
-      .expect(200)
-      .expect({ id: 1, name: 'My Project' });
-  });
+    it('/projects persists owned projects after the API restarts', async () => {
+      await ownerClient.agent
+        .post('/projects')
+        .send({ name: 'Persistent Project' })
+        .expect(201)
+        .expect({ id: 1, name: 'Persistent Project', ownerId: 1 });
 
-  it('/projects/:id (GET) rejects a non-numeric id', () => {
-    return request(app.getHttpServer()).get('/projects/abc').expect(400);
-  });
+      await app.close();
+      app = await createTestApp();
 
-  it('/projects/:id (GET) returns 404 for a missing project', () => {
-    return request(app.getHttpServer())
-      .get('/projects/999')
-      .expect(404)
-      .expect({
+      return request(app.getHttpServer())
+        .get('/projects')
+        .set('Cookie', ownerClient.cookie)
+        .expect(200)
+        .expect([{ id: 1, name: 'Persistent Project', ownerId: 1 }]);
+    });
+
+    it('/projects/:id (GET) returns an owned project', async () => {
+      await ownerClient.agent
+        .post('/projects')
+        .send({ name: 'My Project' })
+        .expect(201);
+
+      return ownerClient.agent
+        .get('/projects/1')
+        .expect(200)
+        .expect({ id: 1, name: 'My Project', ownerId: 1 });
+    });
+
+    it('/projects/:id (GET) rejects a non-numeric id', () => {
+      return ownerClient.agent.get('/projects/abc').expect(400);
+    });
+
+    it('/projects/:id (GET) returns 404 for a missing project', () => {
+      return ownerClient.agent.get('/projects/999').expect(404).expect({
         message: 'Project with id 999 not found',
         error: 'Not Found',
         statusCode: 404,
       });
-  });
+    });
 
-  it('/projects/:id (PATCH) updates an existing project', async () => {
-    await request(app.getHttpServer())
-      .post('/projects')
-      .send({ name: 'Old Name' })
-      .expect(201);
+    it("hides another user's project from every CRUD operation", async () => {
+      const otherClient = await createAuthenticatedClient('other@example.com');
+      await otherClient.agent
+        .post('/projects')
+        .send({ name: 'Other Project' })
+        .expect(201)
+        .expect({ id: 1, name: 'Other Project', ownerId: 2 });
 
-    await request(app.getHttpServer())
-      .patch('/projects/1')
-      .send({ name: 'New Name' })
-      .expect(200)
-      .expect({ id: 1, name: 'New Name' });
+      await ownerClient.agent.get('/projects').expect(200).expect([]);
+      await ownerClient.agent.get('/projects/1').expect(404);
+      await ownerClient.agent
+        .patch('/projects/1')
+        .send({ name: 'Stolen Project' })
+        .expect(404);
+      await ownerClient.agent.delete('/projects/1').expect(404);
 
-    return request(app.getHttpServer())
-      .get('/projects/1')
-      .expect(200)
-      .expect({ id: 1, name: 'New Name' });
-  });
+      return otherClient.agent
+        .get('/projects/1')
+        .expect(200)
+        .expect({ id: 1, name: 'Other Project', ownerId: 2 });
+    });
 
-  it('/projects/:id (PATCH) rejects an empty name', async () => {
-    await request(app.getHttpServer())
-      .post('/projects')
-      .send({ name: 'My Project' })
-      .expect(201);
+    it('/projects/:id (PATCH) updates an owned project', async () => {
+      await ownerClient.agent
+        .post('/projects')
+        .send({ name: 'Old Name' })
+        .expect(201);
 
-    return request(app.getHttpServer())
-      .patch('/projects/1')
-      .send({ name: '' })
-      .expect(400);
-  });
+      await ownerClient.agent
+        .patch('/projects/1')
+        .send({ name: 'New Name' })
+        .expect(200)
+        .expect({ id: 1, name: 'New Name', ownerId: 1 });
 
-  it('/projects/:id (PATCH) rejects a name over 100 characters', async () => {
-    await request(app.getHttpServer())
-      .post('/projects')
-      .send({ name: 'Original Name' })
-      .expect(201);
+      return ownerClient.agent
+        .get('/projects/1')
+        .expect(200)
+        .expect({ id: 1, name: 'New Name', ownerId: 1 });
+    });
 
-    await request(app.getHttpServer())
-      .patch('/projects/1')
-      .send({ name: 'a'.repeat(101) })
-      .expect(400);
+    it('/projects/:id (PATCH) rejects an empty name', async () => {
+      await ownerClient.agent
+        .post('/projects')
+        .send({ name: 'My Project' })
+        .expect(201);
 
-    return request(app.getHttpServer())
-      .get('/projects/1')
-      .expect(200)
-      .expect({ id: 1, name: 'Original Name' });
-  });
+      return ownerClient.agent
+        .patch('/projects/1')
+        .send({ name: '' })
+        .expect(400);
+    });
 
-  it('/projects/:id (PATCH) returns 404 for a missing project', () => {
-    return request(app.getHttpServer())
-      .patch('/projects/999')
-      .send({ name: 'New Name' })
-      .expect(404);
-  });
+    it('/projects/:id (PATCH) rejects a name over 100 characters', async () => {
+      await ownerClient.agent
+        .post('/projects')
+        .send({ name: 'Original Name' })
+        .expect(201);
 
-  it('/projects/:id (DELETE) removes an existing project', async () => {
-    await request(app.getHttpServer())
-      .post('/projects')
-      .send({ name: 'My Project' })
-      .expect(201);
+      await ownerClient.agent
+        .patch('/projects/1')
+        .send({ name: 'a'.repeat(101) })
+        .expect(400);
 
-    await request(app.getHttpServer()).delete('/projects/1').expect(204);
+      return ownerClient.agent
+        .get('/projects/1')
+        .expect(200)
+        .expect({ id: 1, name: 'Original Name', ownerId: 1 });
+    });
 
-    await request(app.getHttpServer()).get('/projects/1').expect(404);
+    it('/projects/:id (PATCH) returns 404 for a missing project', () => {
+      return ownerClient.agent
+        .patch('/projects/999')
+        .send({ name: 'New Name' })
+        .expect(404);
+    });
 
-    return request(app.getHttpServer()).get('/projects').expect(200).expect([]);
-  });
+    it('/projects/:id (DELETE) removes an owned project', async () => {
+      await ownerClient.agent
+        .post('/projects')
+        .send({ name: 'My Project' })
+        .expect(201);
 
-  it('/projects/:id (DELETE) returns 404 for a missing project', () => {
-    return request(app.getHttpServer()).delete('/projects/999').expect(404);
-  });
+      await ownerClient.agent.delete('/projects/1').expect(204);
+      await ownerClient.agent.get('/projects/1').expect(404);
 
-  it('/projects (POST) rejects a non-string name', () => {
-    return request(app.getHttpServer())
-      .post('/projects')
-      .send({ name: 123 })
-      .expect(400);
-  });
+      return ownerClient.agent.get('/projects').expect(200).expect([]);
+    });
 
-  it('/projects (POST) rejects an empty name', () => {
-    return request(app.getHttpServer())
-      .post('/projects')
-      .send({ name: '' })
-      .expect(400);
-  });
+    it('/projects/:id (DELETE) returns 404 for a missing project', () => {
+      return ownerClient.agent.delete('/projects/999').expect(404);
+    });
 
-  it('/projects (POST) rejects a name over 100 characters', () => {
-    return request(app.getHttpServer())
-      .post('/projects')
-      .send({ name: 'a'.repeat(101) })
-      .expect(400);
-  });
+    it('/projects (POST) rejects a non-string name', () => {
+      return ownerClient.agent
+        .post('/projects')
+        .send({ name: 123 })
+        .expect(400);
+    });
 
-  it('/projects (POST) rejects an unexpected property', () => {
-    return request(app.getHttpServer())
-      .post('/projects')
-      .send({ name: 'My Project', isAdmin: true })
-      .expect(400);
+    it('/projects (POST) rejects an empty name', () => {
+      return ownerClient.agent.post('/projects').send({ name: '' }).expect(400);
+    });
+
+    it('/projects (POST) rejects a name over 100 characters', () => {
+      return ownerClient.agent
+        .post('/projects')
+        .send({ name: 'a'.repeat(101) })
+        .expect(400);
+    });
+
+    it('/projects (POST) rejects an unexpected property', () => {
+      return ownerClient.agent
+        .post('/projects')
+        .send({ name: 'My Project', isAdmin: true })
+        .expect(400);
+    });
   });
 
   afterEach(async () => {

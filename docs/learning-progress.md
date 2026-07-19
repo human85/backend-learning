@@ -16,7 +16,7 @@
 - 状态：进行中
 - 30 天计划：第 1 周已完成，开始第 2 周
 - 当前焦点项目：`apps/mini-saas/`
-- 实践进度：注册、登录和 PostgreSQL Session 身份保持已完成；`/auth/me` 受 Guard 保护，注销会销毁服务端 Session
+- 实践进度：注册、登录和 PostgreSQL Session 已完成；Project 已建立 ownerId 外键，所有 CRUD 都限制为当前 Session 用户的数据
 
 ## 已接触的知识
 
@@ -53,19 +53,21 @@
 | 跨模块 Provider | 接触过 | AuthModule 导入 UsersModule，UsersModule 导出 UsersService 供 AuthService 注入 |
 | 登录凭证校验 | 理解中 | 已能识别账号枚举风险和持续身份需求；实现登录专用查询、Argon2 verify 与统一 `401` 并通过 e2e 验证 |
 | Cookie、Session 与 JWT | 理解中 | 已能解释 Session 的服务端状态、进程内存重启丢失和 JWT 单独撤销困难，并区分 Cookie 只是凭据载体 |
-| 服务端 Session | 理解中 | 已使用 PostgreSQL store、HttpOnly/SameSite Cookie 和登录后 Session ID 再生，e2e 验证 API 重启后身份仍有效 |
+| 服务端 Session | 理解中 | 已能解释 Cookie、数据库 Session、API 与 Session Secret 的协作，并正确判断篡改签名、重启和多实例场景 |
 | Guard 与当前用户 | 接触过 | SessionAuthGuard 在 Controller 前检查 userId；`GET /auth/me` 再从数据库读取公开用户 |
+| 一对多与外键 | 理解中 | Project.ownerId 非空引用 User.id，直接 SQL 写入不存在 owner 被 PostgreSQL 拒绝，删除策略为 RESTRICT |
+| 资源归属授权 | 理解中 | 已判断登录不等于拥有资源；Projects 的创建、列表、查询、更新和删除都使用 Session userId 限定范围 |
 
 ## 当前学习任务
 
-建立 User 与 Project 的归属和授权边界：新增 ownerId 外键，让认证用户只能访问自己的项目。
+审查项目授权链路，确认 Guard、Session、Service 查询条件和数据库外键各自解决的问题，再进入前端联调。
 
 ## 下一步完成标准
 
-- Project 建立指向 User 的 ownerId 外键，数据库拒绝不存在的 owner。
-- 创建项目不接受客户端 ownerId，而是从已认证 Session 获取当前 userId。
-- Projects 路由需要登录；查询、更新和删除都只能命中当前用户自己的项目。
-- 单元测试验证 Service 查询条件，e2e 验证未登录和跨用户访问被拒绝。
+- 能指出删除任意一个 ownerId 查询条件会造成的越权路径。
+- 能区分 `401` 未认证、`404` 资源不存在或不属于当前用户，以及外键错误。
+- 能从一次 Projects 请求追踪 Cookie → Session middleware → Guard → Controller → Service → Repository → PostgreSQL。
+- 确认授权审查后，开始前端接入注册、登录和 Projects API。
 
 ## 困惑与阻塞
 

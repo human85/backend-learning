@@ -2,8 +2,10 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { ProjectEntity } from '../projects/project.entity';
 import {
   PASSWORD_HASH_MAX_LENGTH,
   USER_EMAIL_MAX_LENGTH,
@@ -27,4 +29,7 @@ export class UserEntity {
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
+
+  @OneToMany(() => ProjectEntity, (project) => project.owner)
+  projects: ProjectEntity[];
 }

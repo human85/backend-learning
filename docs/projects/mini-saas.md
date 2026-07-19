@@ -9,9 +9,9 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 路径：`apps/mini-saas/`
 - 技术栈：Node.js、TypeScript、NestJS 11、TypeORM、PostgreSQL 17、Jest
 - 阶段：NestJS、HTTP 与 PostgreSQL 基础完成，进入认证与授权
-- 30 天里程碑：第 2 周，注册、登录和 Session 已完成，开始项目归属与授权
-- 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；项目接口通过 PostgreSQL 支持 CRUD；认证支持注册、登录、`GET /auth/me` 和注销
-- 数据库与认证：注册和登录使用 Argon2id；PostgreSQL 保存服务端 Session，HttpOnly Cookie 携带随机 Session ID；项目授权和 Redis 尚未接入
+- 30 天里程碑：第 2 周核心行为已完成，正在审查授权边界
+- 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；认证支持注册、登录、当前用户和注销；已登录用户只能 CRUD 自己的项目
+- 数据库与认证：注册和登录使用 Argon2id；PostgreSQL 保存服务端 Session；Project.ownerId 非空外键指向 User，所有查询按当前用户隔离
 
 ## 已完成
 
@@ -55,14 +55,19 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 登录成功后重新生成 Session ID，再把 userId 保存到新 Session；修复并记录 regenerate 会替换 `request.session` 对象引用的真实测试问题。
 - 新增 SessionAuthGuard、`GET /auth/me` 和 `POST /auth/logout`；未登录访问返回 `401`，注销销毁数据库记录并清理 Cookie。
 - 39 个单元测试、27 个 e2e、构建和 lint 全部通过；e2e 关闭并重建 Nest 应用后使用原 Cookie 仍能恢复用户，证明状态不依赖进程内存。
+- ProjectEntity 与 UserEntity 建立多对一/一对多关系，第四份 migration 新增非空 owner_id 外键并采用 `ON DELETE RESTRICT`；开发库和测试库均执行成功。
+- ProjectsController 整体使用 SessionAuthGuard，创建时从 Session 读取 userId；CreateProjectDto 不开放 ownerId，客户端伪造归属返回 `400`。
+- ProjectsService 的列表、单项、更新和删除都把 ownerId 放进 Repository 条件；访问不存在或属于其他用户的项目统一返回 `404`。
+- 双用户 e2e 验证用户 A 无法列出、读取、修改或删除用户 B 的项目；直接 SQL 写入不存在 owner 被 PostgreSQL 外键拒绝。
+- 39 个单元测试、30 个 e2e、构建和 lint 全部通过；下一步完成授权代码审查后进入前端联调。
 
 ## 下一项应用课程
 
-实现登录与身份保持：
+完成授权审查并开始前端联调：
 
-1. 建立 User 与 Project 的一对多关系及 `ownerId` 外键。
-2. 创建项目时从 Session 获取 userId，不接受客户端 ownerId。
-3. 让项目查询、更新和删除只作用于当前用户的数据。
-4. 通过双用户 e2e 验证跨用户访问被拒绝。
+1. 从 Cookie 追踪一次项目请求到数据库 ownerId 条件。
+2. 审查删除 Guard、ownerId 条件或外键分别会产生什么问题。
+3. 确定前端应用接入方式并实现注册、登录、当前用户和注销。
+4. 接入只属于当前用户的 Projects CRUD。
 
 完成标准仍以 `docs/learning-progress.md` 的当前快照为准。

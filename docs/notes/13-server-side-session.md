@@ -37,6 +37,14 @@ Cookie 中没有邮箱、角色或密码哈希。它只是指向服务端 Sessio
 
 当前使用非持久 Cookie，关闭浏览器后客户端标识消失；服务端过期记录由 PostgreSQL store 定期清理。生产阶段仍需根据产品要求确定空闲超时、绝对过期、CSRF 和并发登录策略。
 
+## Session Secret 与 Cookie 签名
+
+当前代码把环境变量 `SESSION_SECRET` 传给 express-session。middleware 在响应时使用 Secret 对 Session ID 生成 HMAC-SHA256 签名；后续请求先用同一个 Secret 验证签名，再接受 Session ID 并查询 PostgreSQL。
+
+签名不是加密。它证明 Cookie 没被修改，但不能阻止被完整窃取的 Cookie 遭到重放。所有 API 实例必须连接同一个 Session store 并使用相同 Secret，才能在负载均衡后相互识别登录状态；Secret 改变会让旧 Cookie 验证失败。
+
+因此 API 重启后恢复登录需要同时满足：浏览器 Cookie 仍存在、数据库 Session 仍存在且未过期、新 API 连接相同数据库并使用相同 Session Secret。
+
 ## 注销与当前用户
 
 - `POST /auth/logout` 删除服务端 Session，并让浏览器清除 Cookie。

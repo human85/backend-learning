@@ -164,3 +164,12 @@
 - 首次重启 e2e 返回 `401`，定位到 regenerate 会替换 `request.session`，旧对象引用保存了错误状态；改为在回调中从 Request 重新读取新 Session 后通过。
 - 新增 SessionAuthGuard、`GET /auth/me` 和 `POST /auth/logout`；e2e 验证 API 重启后原 Cookie 仍能恢复用户，注销后 Session 行被删除且原 Cookie 返回 `401`。
 - 39 个单元测试、27 个 e2e、构建和 lint 全部通过；下一步建立 Project.ownerId 外键和用户数据授权边界。
+
+## 2026-07-19｜理解 Session 签名并建立项目归属授权
+
+- 学习者正确判断 Cookie 被修改后签名验证失败，也能说明多个 API 实例共享 PostgreSQL 和 Session Secret 时可以恢复 userId；明确 Secret 是服务端 HMAC 签名密钥，不存入 sessions 表。
+- 学习者正确区分认证和资源归属：Session Guard 会放行已登录用户，但外键不能证明请求者就是 owner，ownerId 必须来自可信 Session 而不是请求体。
+- ProjectEntity 与 UserEntity 建立多对一/一对多关系；第四份 migration 增加非空 owner_id 外键和 RESTRICT 删除策略，并在开发库与测试库执行。
+- ProjectsController 整体挂载 SessionAuthGuard，所有 CRUD 从 Session 获取 userId；ProjectsService 的 Repository 查询和删除条件均包含 ownerId。
+- 双用户 e2e 验证未登录返回 `401`，用户 A 对用户 B 项目的列表、查询、更新和删除都无法越权且单项操作统一返回 `404`。
+- 直接 SQL 写入不存在的 owner_id 被 PostgreSQL 外键拒绝；39 个单元测试、30 个 e2e、构建和 lint 全部通过。

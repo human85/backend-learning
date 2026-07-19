@@ -10,18 +10,21 @@ export class ProjectsService {
     private readonly projectsRepository: Repository<ProjectEntity>,
   ) {}
 
-  async createProject(name: string): Promise<ProjectEntity> {
-    const project = this.projectsRepository.create({ name });
+  async createProject(name: string, ownerId: number): Promise<ProjectEntity> {
+    const project = this.projectsRepository.create({ name, ownerId });
 
     return this.projectsRepository.save(project);
   }
 
-  findAll(): Promise<ProjectEntity[]> {
-    return this.projectsRepository.find({ order: { id: 'ASC' } });
+  findAll(ownerId: number): Promise<ProjectEntity[]> {
+    return this.projectsRepository.find({
+      where: { ownerId },
+      order: { id: 'ASC' },
+    });
   }
 
-  async findOne(id: number): Promise<ProjectEntity> {
-    const project = await this.projectsRepository.findOneBy({ id });
+  async findOne(id: number, ownerId: number): Promise<ProjectEntity> {
+    const project = await this.projectsRepository.findOneBy({ id, ownerId });
 
     if (!project) {
       throw new NotFoundException(`Project with id ${id} not found`);
@@ -30,14 +33,18 @@ export class ProjectsService {
     return project;
   }
 
-  async updateProject(id: number, name: string): Promise<ProjectEntity> {
-    const project = await this.findOne(id);
+  async updateProject(
+    id: number,
+    name: string,
+    ownerId: number,
+  ): Promise<ProjectEntity> {
+    const project = await this.findOne(id, ownerId);
 
     return this.projectsRepository.save({ ...project, name });
   }
 
-  async deleteProject(id: number): Promise<void> {
-    const result = await this.projectsRepository.delete(id);
+  async deleteProject(id: number, ownerId: number): Promise<void> {
+    const result = await this.projectsRepository.delete({ id, ownerId });
 
     if (!result.affected) {
       throw new NotFoundException(`Project with id ${id} not found`);

@@ -1,27 +1,34 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { AuthenticatedSession } from '../session/session.types';
+import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { ProjectsController } from './projects.controller';
 import { ProjectsService } from './projects.service';
 
 describe('ProjectsController', () => {
+  const session = { userId: 10 } as AuthenticatedSession;
   let projectsController: ProjectsController;
   const projectsService = {
     createProject: jest
       .fn()
-      .mockImplementation((name: string) => Promise.resolve({ id: 1, name })),
+      .mockImplementation((name: string, ownerId: number) =>
+        Promise.resolve({ id: 1, name, ownerId }),
+      ),
     findAll: jest.fn().mockResolvedValue([
       {
         id: 1,
         name: 'My Project',
+        ownerId: 10,
       },
     ]),
     findOne: jest.fn().mockResolvedValue({
       id: 1,
       name: 'My Project',
+      ownerId: 10,
     }),
     updateProject: jest
       .fn()
-      .mockImplementation((id: number, name: string) =>
-        Promise.resolve({ id, name }),
+      .mockImplementation((id: number, name: string, ownerId: number) =>
+        Promise.resolve({ id, name, ownerId }),
       ),
     deleteProject: jest.fn().mockResolvedValue(undefined),
   };
@@ -36,6 +43,7 @@ describe('ProjectsController', () => {
           provide: ProjectsService,
           useValue: projectsService,
         },
+        SessionAuthGuard,
       ],
     }).compile();
 
@@ -44,41 +52,53 @@ describe('ProjectsController', () => {
 
   it('should delegate project creation to the service', async () => {
     await expect(
-      projectsController.createProject({ name: 'My Project' }),
+      projectsController.createProject({ name: 'My Project' }, session),
     ).resolves.toEqual({
       id: 1,
       name: 'My Project',
+      ownerId: 10,
     });
-    expect(projectsService.createProject).toHaveBeenCalledWith('My Project');
+    expect(projectsService.createProject).toHaveBeenCalledWith(
+      'My Project',
+      10,
+    );
   });
 
   it('should delegate project listing to the service', async () => {
-    await expect(projectsController.getProjects()).resolves.toEqual([
+    await expect(projectsController.getProjects(session)).resolves.toEqual([
       {
         id: 1,
         name: 'My Project',
+        ownerId: 10,
       },
     ]);
-    expect(projectsService.findAll).toHaveBeenCalledTimes(1);
+    expect(projectsService.findAll).toHaveBeenCalledWith(10);
   });
 
   it('should delegate finding one project to the service', async () => {
-    await expect(projectsController.getProject(1)).resolves.toEqual({
+    await expect(projectsController.getProject(1, session)).resolves.toEqual({
       id: 1,
       name: 'My Project',
+      ownerId: 10,
     });
-    expect(projectsService.findOne).toHaveBeenCalledWith(1);
+    expect(projectsService.findOne).toHaveBeenCalledWith(1, 10);
   });
 
   it('should delegate project updates to the service', async () => {
     await expect(
-      projectsController.updateProject(1, { name: 'New Name' }),
-    ).resolves.toEqual({ id: 1, name: 'New Name' });
-    expect(projectsService.updateProject).toHaveBeenCalledWith(1, 'New Name');
+      projectsController.updateProject(1, { name: 'New Name' }, session),
+    ).resolves.toEqual({ id: 1, name: 'New Name', ownerId: 10 });
+    expect(projectsService.updateProject).toHaveBeenCalledWith(
+      1,
+      'New Name',
+      10,
+    );
   });
 
   it('should delegate project deletion to the service', async () => {
-    await expect(projectsController.deleteProject(1)).resolves.toBeUndefined();
-    expect(projectsService.deleteProject).toHaveBeenCalledWith(1);
+    await expect(
+      projectsController.deleteProject(1, session),
+    ).resolves.toBeUndefined();
+    expect(projectsService.deleteProject).toHaveBeenCalledWith(1, 10);
   });
 });
