@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
 import { createDatabaseOptions } from './database/database-options';
 import { ProjectsModule } from './projects/projects.module';
 
@@ -18,6 +19,7 @@ import { ProjectsModule } from './projects/projects.module';
       useFactory: (configService: ConfigService) =>
         createDatabaseOptions(configService.getOrThrow('DATABASE_URL')),
     }),
+    AuthModule,
     ProjectsModule,
   ],
   controllers: [AppController],

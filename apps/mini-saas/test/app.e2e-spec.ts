@@ -3,6 +3,8 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
+import { verify } from 'argon2';
+import { UserEntity } from './../src/users/user.entity';
 import { configureApp } from './../src/app.config';
 import { AppModule } from './../src/app.module';
 
@@ -25,7 +27,86 @@ describe('AppController (e2e)', () => {
     app = await createTestApp();
     await app
       .get(DataSource)
-      .query('TRUNCATE TABLE "projects" RESTART IDENTITY');
+      .query('TRUNCATE TABLE "projects", "users" RESTART IDENTITY CASCADE');
+  });
+
+  it('/auth/register creates a user without exposing credentials', async () => {
+    const password = 'correct horse battery staple';
+    const response = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ email: 'USER@Example.COM', password })
+      .expect(201);
+
+    expect(response.body).toMatchObject({
+      id: 1,
+      email: 'user@example.com',
+    });
+    expect(typeof (response.body as Record<string, unknown>).createdAt).toBe(
+      'string',
+    );
+    expect(response.body).not.toHaveProperty('password');
+    expect(response.body).not.toHaveProperty('passwordHash');
+
+    const storedUser = await app
+      .get(DataSource)
+      .getRepository(UserEntity)
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.email = :email', { email: 'user@example.com' })
+      .getOneOrFail();
+
+    expect(storedUser.passwordHash).not.toBe(password);
+    await expect(verify(storedUser.passwordHash, password)).resolves.toBe(true);
+  });
+
+  it('/auth/register returns 409 for a duplicate email', async () => {
+    const registration = {
+      email: 'user@example.com',
+      password: 'correct horse battery staple',
+    };
+
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send(registration)
+      .expect(201);
+
+    return request(app.getHttpServer())
+      .post('/auth/register')
+      .send(registration)
+      .expect(409)
+      .expect({
+        message: 'Email is already registered',
+        error: 'Conflict',
+        statusCode: 409,
+      });
+  });
+
+  it('/auth/register rejects an invalid email', () => {
+    return request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: 'not-an-email',
+        password: 'correct horse battery staple',
+      })
+      .expect(400);
+  });
+
+  it('/auth/register rejects a short password', () => {
+    return request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ email: 'user@example.com', password: 'too-short' })
+      .expect(400);
+  });
+
+  it('/auth/register rejects a client-provided password hash', () => {
+    return request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: 'user@example.com',
+        password: 'correct horse battery staple',
+        passwordHash: 'client-controlled-hash',
+      })
+      .expect(400);
   });
 
   it('/ (GET)', () => {

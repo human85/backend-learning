@@ -136,3 +136,12 @@
 - 生成并审查第二份 migration，确认 `UNIQUE(email)`、`NOT NULL` 和 `DEFAULT now()` 都落实为 PostgreSQL 结构，并在开发库与测试库成功执行。
 - 直接 SQL 首次插入用户成功，第二次相同邮箱被唯一约束拒绝；`SELECT *` 仍显示 password_hash，证明 `select: false` 是 ORM 默认查询行为而不是数据库保密边界。
 - 清理 SQL 实验数据后，17 个单元测试、18 个 e2e、构建和 lint 全部通过；下一步实现注册、邮箱规范化、密码哈希和安全响应。
+
+## 2026-07-19｜实现安全用户注册
+
+- 学习者正确解释相同密码因随机 salt 产生不同哈希、快速 SHA-256 不适合密码存储、salt 无需保密且哈希不可逆。
+- 根据当前安全建议选择 Argon2id，显式使用 19 MiB 内存、2 次迭代、并行度 1；无 MFA 的第一版密码长度设为 15–128，不强制字符组合。
+- 新增 UsersModule/UsersService 与 AuthModule/AuthController/AuthService/PasswordService，实践 Module export/import 让 AuthService 跨模块注入 UsersService。
+- `POST /auth/register` 校验输入、规范化邮箱、生成哈希并只返回公开字段；重复邮箱的提前检查和数据库 `23505` 都映射为 `409 Conflict`。
+- 单元测试分别覆盖 Controller 委托、AuthService 业务、UsersService Repository 和真实 PasswordService；e2e 验证真实数据库只保存 Argon2id 哈希、响应无敏感字段及关键 `400`/`409` 路径。
+- 25 个单元测试、23 个 e2e、构建和 lint 全部通过；下一步先实现凭证校验，再选择身份保持方案。

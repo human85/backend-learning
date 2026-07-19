@@ -8,10 +8,10 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 
 - 路径：`apps/mini-saas/`
 - 技术栈：Node.js、TypeScript、NestJS 11、TypeORM、PostgreSQL 17、Jest
-- 阶段：NestJS 与 HTTP 基础完成，开始 PostgreSQL 持久化
-- 30 天里程碑：第 1 周，进程内 CRUD 已完成，进入 PostgreSQL
-- 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；项目接口支持进程内创建、列表、按 ID 查询、更新和删除
-- 数据库：Projects CRUD 已持久化；users 表、邮箱唯一约束和创建时间默认值已通过第二份 migration 加入开发库与测试库；认证、Redis 尚未接入
+- 阶段：NestJS、HTTP 与 PostgreSQL 基础完成，进入认证与授权
+- 30 天里程碑：第 2 周，注册已完成，开始登录与身份保持
+- 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；项目接口通过 PostgreSQL 支持创建、列表、按 ID 查询、更新和删除；`POST /auth/register` 支持用户注册
+- 数据库与认证：Projects CRUD 已持久化；users 表已接入，注册使用 Argon2id 并安全返回公开用户字段；登录、会话、授权和 Redis 尚未接入
 
 ## 已完成
 
@@ -42,14 +42,18 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 新增 UserEntity：邮箱 `varchar(254) NOT NULL UNIQUE`、密码哈希 `varchar(255) NOT NULL`、数据库自动生成的 `created_at`。
 - 在开发库和测试库执行第二份 migration；直接 SQL 验证重复邮箱被唯一约束拒绝，同时确认 `select: false` 不会阻止数据库查询返回 `password_hash`。
 - 新增用户表后，17 个单元测试、18 个 e2e、构建和 lint 继续通过。
+- 新增 UsersModule 与无公开路由的 UsersService，向 AuthModule 导出用户查询和保存能力；AuthController 提供 `POST /auth/register`。
+- AuthService 将邮箱规范化为小写，使用 PasswordService 生成 Argon2id 哈希，并把提前发现的重复邮箱和数据库 `23505` 都映射为 `409 Conflict`。
+- 注册 DTO 只接受合法邮箱和 15–128 字符密码，拒绝客户端提交 passwordHash；成功响应显式只含 id、email、createdAt。
+- 单元测试扩展到 25 项，e2e 扩展到 23 项；真实数据库验证哈希不是明文、Argon2 verify 成功且响应不含敏感字段，构建和 lint 通过。
 
 ## 下一项应用课程
 
-将项目数据迁移到 PostgreSQL：
+实现登录与身份保持：
 
-1. 实现注册 DTO、邮箱规范化与密码哈希。
-2. 只返回 User 的公开字段，并将重复邮箱映射为 `409`。
-3. 实现登录和身份认证。
+1. 实现登录 DTO 和凭证查询。
+2. 使用 Argon2 verify 校验密码，并统一失败响应。
+3. 选择并实现 Cookie、Session 或 JWT 身份保持方案。
 4. 建立 User 与 Project 的一对多关系及 `ownerId` 外键，让用户只能操作自己的项目。
 
 完成标准仍以 `docs/learning-progress.md` 的当前快照为准。
