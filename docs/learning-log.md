@@ -60,3 +60,12 @@
 - AppModule 使用 `imports: [ProjectsModule]` 将整个项目领域纳入应用，外部 `POST /projects` 合同保持不变。
 - 理解未导入 ProjectsModule 会导致路由不存在并返回 `404`；未注册 ProjectsService 会导致 NestJS 无法解析 Controller 依赖并在启动阶段失败。
 - 当前没有其他模块需要注入 ProjectsService，因此没有提前导出 provider。
+
+## 2026-07-19｜进程内项目状态与列表查询
+
+- 为 Project 增加服务端生成的顺序 ID，并在 ProjectsService 的内存数组中保存创建结果。
+- 学习者亲自实现 `GET /projects` Controller 方法，正确使用 `@Get()` 并委托 `ProjectsService.findAll()`。
+- `findAll()` 返回数组副本，避免调用者直接增加或删除 Service 内部数组元素。
+- Service 单元测试验证初始空列表、创建后保存和顺序 ID；e2e 在同一应用实例中连续创建两个项目并查询列表。
+- 理解 Nest Provider 默认单例让同一应用进程内的请求共享状态；e2e 的 `beforeEach` 会创建新应用和新 Service，使不同测试相互隔离。
+- 明确内存数组会随应用重启消失，也不能在多个服务实例之间共享，因此不等同于数据库持久化。

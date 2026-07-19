@@ -37,7 +37,29 @@ describe('AppController (e2e)', () => {
       .post('/projects')
       .send({ name: 'My Project' })
       .expect(201)
-      .expect({ name: 'My Project' });
+      .expect({ id: 1, name: 'My Project' });
+  });
+
+  it('/projects (GET) returns projects created in the same app process', async () => {
+    await request(app.getHttpServer())
+      .post('/projects')
+      .send({ name: 'Project A' })
+      .expect(201)
+      .expect({ id: 1, name: 'Project A' });
+
+    await request(app.getHttpServer())
+      .post('/projects')
+      .send({ name: 'Project B' })
+      .expect(201)
+      .expect({ id: 2, name: 'Project B' });
+
+    return request(app.getHttpServer())
+      .get('/projects')
+      .expect(200)
+      .expect([
+        { id: 1, name: 'Project A' },
+        { id: 2, name: 'Project B' },
+      ]);
   });
 
   it('/projects (POST) rejects a non-string name', () => {

@@ -4,7 +4,7 @@
 
 ## 基本信息
 
-- 最近更新：2026-07-18
+- 最近更新：2026-07-19
 - 学习者背景：Web 前端工程师
 - 学习目标：通过真实 Mini SaaS 项目系统学习后端，逐步具备全栈开发能力
 - 教学偏好：中文讲解；先讲原因再讲术语；使用前端概念类比；AI 主导大部分实现；重点练习需求拆解、代码审查、故障推理和验证；只安排有助于理解记忆的少量手写代码；区分“能运行”和“工程化”
@@ -14,7 +14,7 @@
 - 阶段：工程组织与 NestJS 基础
 - 状态：进行中
 - 当前焦点项目：`apps/mini-saas/`
-- 实践进度：Mini SaaS 已实现 `GET /health` 和带 DTO 校验的 `POST /projects`；项目领域已从根 AppController/AppService 重构为独立 ProjectsModule
+- 实践进度：ProjectsModule 已使用默认单例 Service 保存进程内项目状态；`POST /projects` 生成 ID，`GET /projects` 返回当前列表
 
 ## 已接触的知识
 
@@ -31,17 +31,19 @@
 | DTO 与运行时校验 | 理解中 | 已能区分 TypeScript 类型描述与 ValidationPipe 的实际校验职责 |
 | 白名单输入 | 理解中 | 已理解 `whitelist` 清理字段、`forbidNonWhitelisted` 拒绝额外字段 |
 | NestJS feature module | 理解中 | 已理解 `imports`、`controllers`、`providers` 的注册关系和缺失时的故障表现 |
+| Provider 实例状态 | 理解中 | 已能解释同一应用内请求共享 Service 状态，而 e2e 的新应用实例会重置数组 |
+| 内存数据与持久化 | 理解中 | 已理解进程重启、重新实例化或多实例部署不会共享当前数组 |
 
 ## 当前学习任务
 
-为 ProjectsModule 增加最小内存数据状态，从“校验后回显”推进到能够创建并查询项目，同时理解内存状态不等于数据库持久化。
+增加 `GET /projects/:id`，学习路径参数、运行时数字转换以及找不到资源时的 `404 Not Found`。
 
 ## 下一步完成标准
 
-- 创建项目时生成 ID，并暂存在应用进程内。
-- 增加 `GET /projects` 返回当前项目列表。
-- 能解释为什么重启应用后内存数据会消失。
-- 使用 Service 单元测试和 e2e 验证创建与查询链路，暂不接入数据库。
+- 使用 `@Param()` 读取路径参数，并通过 Pipe 将字符串转换为数字。
+- ProjectsService 能按 ID 查询单个项目。
+- 找不到项目时由后端返回 `404`，而不是 `undefined` 或 `200`。
+- 使用单元测试和 e2e 覆盖成功与不存在两条路径。
 
 ## 困惑与阻塞
 
