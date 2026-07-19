@@ -8,9 +8,9 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 
 - 路径：`apps/mini-saas/`
 - 技术栈：Node.js、TypeScript、NestJS 11、Jest
-- 阶段：NestJS 与 HTTP 基础
-- 30 天里程碑：第 1 周，完成进程内 CRUD 后立即进入 PostgreSQL
-- 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；项目接口支持进程内创建、列表和按 ID 查询，不存在时返回 `404`
+- 阶段：NestJS 与 HTTP 基础完成，开始 PostgreSQL 持久化
+- 30 天里程碑：第 1 周，进程内 CRUD 已完成，进入 PostgreSQL
+- 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；项目接口支持进程内创建、列表、按 ID 查询、更新和删除
 - 数据库、认证、Redis：尚未接入
 
 ## 已完成
@@ -27,16 +27,17 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 通过 Service 单元测试和同一应用内的 e2e 请求验证创建、保存和列表查询。
 - 增加 `GET /projects/:id`，使用 ParseIntPipe 转换路径参数，并由 Service 对不存在的项目抛出 NotFoundException。
 - 通过代码审查推理确认单元测试绕过 HTTP 参数转换，只有 e2e 能发现缺失 ParseIntPipe 的真实链路问题。
+- 增加 `PATCH /projects/:id`，UpdateProjectDto 只开放名称，Service 创建新对象替换原数组元素。
+- 增加 `DELETE /projects/:id`，删除成功返回无响应体的 `204`，不存在时继续返回 `404`。
+- 单元测试与 e2e 覆盖进程内 CRUD 成功和关键失败路径。
 
 ## 下一项应用课程
 
-完成进程内项目 CRUD：
+将项目数据迁移到 PostgreSQL：
 
-1. 增加 UpdateProjectDto 和 `PATCH /projects/:id`。
-2. 增加 `DELETE /projects/:id`，明确成功响应状态码。
-3. Service 实现更新和删除规则，并复用不存在项目的 `404` 行为。
-4. 使用单元测试与 e2e 覆盖成功和失败路径。
-
-完成进程内 CRUD 后不继续扩展临时存储，下一项立即选择 ORM、连接 PostgreSQL 并使用迁移将项目数据持久化。
+1. 理解数据库、表、行、主键、约束和迁移。
+2. 根据 30 天闭环目标选择 ORM 和本地 PostgreSQL 运行方式。
+3. 建立连接并创建第一份 Project 表迁移。
+4. 用数据库数据访问替换内存数组，保持现有 HTTP 合同和测试意图。
 
 完成标准仍以 `docs/learning-progress.md` 的当前快照为准。

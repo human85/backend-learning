@@ -44,4 +44,34 @@ describe('ProjectsService', () => {
       new NotFoundException('Project with id 999 not found'),
     );
   });
+
+  it('should update an existing project', () => {
+    projectsService.createProject('Old Name');
+
+    expect(projectsService.updateProject(1, 'New Name')).toEqual({
+      id: 1,
+      name: 'New Name',
+    });
+    expect(projectsService.findOne(1).name).toBe('New Name');
+  });
+
+  it('should throw when updating a missing project', () => {
+    expect(() => projectsService.updateProject(999, 'New Name')).toThrow(
+      new NotFoundException('Project with id 999 not found'),
+    );
+  });
+
+  it('should delete an existing project', () => {
+    projectsService.createProject('My Project');
+
+    projectsService.deleteProject(1);
+
+    expect(projectsService.findAll()).toEqual([]);
+  });
+
+  it('should throw when deleting a missing project', () => {
+    expect(() => projectsService.deleteProject(999)).toThrow(
+      new NotFoundException('Project with id 999 not found'),
+    );
+  });
 });

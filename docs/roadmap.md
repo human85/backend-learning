@@ -11,7 +11,7 @@
 - 请求与响应生命周期
 - Module、Controller、Service、依赖注入
 - DTO、Pipe、异常和状态码
-- 完成进程内 Projects CRUD
+- 完成进程内 Projects CRUD（已完成）
 - 连接 PostgreSQL，选择 ORM 并运行迁移
 - 将 Projects CRUD 从内存迁移到真实数据库
 

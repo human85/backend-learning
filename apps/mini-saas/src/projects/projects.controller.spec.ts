@@ -18,6 +18,10 @@ describe('ProjectsController', () => {
       id: 1,
       name: 'My Project',
     }),
+    updateProject: jest
+      .fn()
+      .mockImplementation((id: number, name: string) => ({ id, name })),
+    deleteProject: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -60,5 +64,18 @@ describe('ProjectsController', () => {
       name: 'My Project',
     });
     expect(projectsService.findOne).toHaveBeenCalledWith(1);
+  });
+
+  it('should delegate project updates to the service', () => {
+    expect(projectsController.updateProject(1, { name: 'New Name' })).toEqual({
+      id: 1,
+      name: 'New Name',
+    });
+    expect(projectsService.updateProject).toHaveBeenCalledWith(1, 'New Name');
+  });
+
+  it('should delegate project deletion to the service', () => {
+    expect(projectsController.deleteProject(1)).toBeUndefined();
+    expect(projectsService.deleteProject).toHaveBeenCalledWith(1);
   });
 });

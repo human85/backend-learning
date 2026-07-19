@@ -27,7 +27,7 @@
 
 ### 2026-07-19 至 2026-07-25｜API、CRUD 与数据库
 
-- 完成 Projects 进程内 CRUD。
+- 完成 Projects 进程内 CRUD。（已完成）
 - 学习 PostgreSQL、表、行、主键和基本约束。
 - 选择 ORM，建立数据库连接和第一份迁移。
 - 将 Projects CRUD 改为真实持久化。

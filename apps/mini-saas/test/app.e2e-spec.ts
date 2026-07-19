@@ -89,6 +89,60 @@ describe('AppController (e2e)', () => {
       });
   });
 
+  it('/projects/:id (PATCH) updates an existing project', async () => {
+    await request(app.getHttpServer())
+      .post('/projects')
+      .send({ name: 'Old Name' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch('/projects/1')
+      .send({ name: 'New Name' })
+      .expect(200)
+      .expect({ id: 1, name: 'New Name' });
+
+    return request(app.getHttpServer())
+      .get('/projects/1')
+      .expect(200)
+      .expect({ id: 1, name: 'New Name' });
+  });
+
+  it('/projects/:id (PATCH) rejects an empty name', async () => {
+    await request(app.getHttpServer())
+      .post('/projects')
+      .send({ name: 'My Project' })
+      .expect(201);
+
+    return request(app.getHttpServer())
+      .patch('/projects/1')
+      .send({ name: '' })
+      .expect(400);
+  });
+
+  it('/projects/:id (PATCH) returns 404 for a missing project', () => {
+    return request(app.getHttpServer())
+      .patch('/projects/999')
+      .send({ name: 'New Name' })
+      .expect(404);
+  });
+
+  it('/projects/:id (DELETE) removes an existing project', async () => {
+    await request(app.getHttpServer())
+      .post('/projects')
+      .send({ name: 'My Project' })
+      .expect(201);
+
+    await request(app.getHttpServer()).delete('/projects/1').expect(204);
+
+    await request(app.getHttpServer()).get('/projects/1').expect(404);
+
+    return request(app.getHttpServer()).get('/projects').expect(200).expect([]);
+  });
+
+  it('/projects/:id (DELETE) returns 404 for a missing project', () => {
+    return request(app.getHttpServer()).delete('/projects/999').expect(404);
+  });
+
   it('/projects (POST) rejects a non-string name', () => {
     return request(app.getHttpServer())
       .post('/projects')

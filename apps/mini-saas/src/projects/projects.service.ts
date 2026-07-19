@@ -23,12 +23,33 @@ export class ProjectsService {
   }
 
   findOne(id: number): Project {
-    const project = this.projects.find((item) => item.id === id);
+    return this.projects[this.findProjectIndex(id)];
+  }
 
-    if (!project) {
+  updateProject(id: number, name: string): Project {
+    const projectIndex = this.findProjectIndex(id);
+    const updatedProject: Project = {
+      ...this.projects[projectIndex],
+      name,
+    };
+
+    this.projects[projectIndex] = updatedProject;
+
+    return updatedProject;
+  }
+
+  deleteProject(id: number): void {
+    const projectIndex = this.findProjectIndex(id);
+    this.projects.splice(projectIndex, 1);
+  }
+
+  private findProjectIndex(id: number): number {
+    const projectIndex = this.projects.findIndex((item) => item.id === id);
+
+    if (projectIndex === -1) {
       throw new NotFoundException(`Project with id ${id} not found`);
     }
 
-    return project;
+    return projectIndex;
   }
 }
