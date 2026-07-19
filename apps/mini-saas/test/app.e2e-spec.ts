@@ -109,6 +109,58 @@ describe('AppController (e2e)', () => {
       .expect(400);
   });
 
+  it('/auth/login verifies credentials without exposing the password hash', async () => {
+    const password = 'correct horse battery staple';
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ email: 'user@example.com', password })
+      .expect(201);
+
+    const ordinaryUser = await app
+      .get(DataSource)
+      .getRepository(UserEntity)
+      .findOneByOrFail({ email: 'user@example.com' });
+    expect(ordinaryUser.passwordHash).toBeUndefined();
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'USER@Example.COM', password })
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      id: 1,
+      email: 'user@example.com',
+    });
+    expect(response.body).not.toHaveProperty('password');
+    expect(response.body).not.toHaveProperty('passwordHash');
+  });
+
+  it('/auth/login uses the same 401 response for unknown email and wrong password', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: 'user@example.com',
+        password: 'correct horse battery staple',
+      })
+      .expect(201);
+
+    const wrongPasswordResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'user@example.com', password: 'incorrect password' })
+      .expect(401);
+    const unknownEmailResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'missing@example.com', password: 'incorrect password' })
+      .expect(401);
+
+    expect(wrongPasswordResponse.body).toEqual({
+      message: 'Invalid email or password',
+      error: 'Unauthorized',
+      statusCode: 401,
+    });
+    expect(unknownEmailResponse.body).toEqual(wrongPasswordResponse.body);
+  });
+
   it('/ (GET)', () => {
     return request(app.getHttpServer())
       .get('/')

@@ -1,5 +1,10 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { QueryFailedError } from 'typeorm';
+import { UserEntity } from '../users/user.entity';
 import { UsersService } from '../users/users.service';
 import { PasswordService } from './password.service';
 import { PublicUser } from './public-user.type';
@@ -12,7 +17,7 @@ export class AuthService {
   ) {}
 
   async register(email: string, password: string): Promise<PublicUser> {
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = this.normalizeEmail(email);
     const existingUser = await this.usersService.findByEmail(normalizedEmail);
 
     if (existingUser) {
@@ -27,11 +32,7 @@ export class AuthService {
         passwordHash,
       );
 
-      return {
-        id: user.id,
-        email: user.email,
-        createdAt: user.createdAt,
-      };
+      return this.toPublicUser(user);
     } catch (error) {
       if (this.isUniqueViolation(error)) {
         throw this.createEmailConflict();
@@ -39,6 +40,39 @@ export class AuthService {
 
       throw error;
     }
+  }
+
+  async login(email: string, password: string): Promise<PublicUser> {
+    const normalizedEmail = this.normalizeEmail(email);
+    const user =
+      await this.usersService.findCredentialsByEmail(normalizedEmail);
+
+    if (!user) {
+      throw this.createInvalidCredentials();
+    }
+
+    const passwordMatches = await this.passwordService.verify(
+      user.passwordHash,
+      password,
+    );
+
+    if (!passwordMatches) {
+      throw this.createInvalidCredentials();
+    }
+
+    return this.toPublicUser(user);
+  }
+
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
+  }
+
+  private toPublicUser(user: UserEntity): PublicUser {
+    return {
+      id: user.id,
+      email: user.email,
+      createdAt: user.createdAt,
+    };
   }
 
   private isUniqueViolation(error: unknown): boolean {
@@ -53,5 +87,9 @@ export class AuthService {
 
   private createEmailConflict(): ConflictException {
     return new ConflictException('Email is already registered');
+  }
+
+  private createInvalidCredentials(): UnauthorizedException {
+    return new UnauthorizedException('Invalid email or password');
   }
 }

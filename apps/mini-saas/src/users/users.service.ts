@@ -14,6 +14,14 @@ export class UsersService {
     return this.usersRepository.findOneBy({ email });
   }
 
+  findCredentialsByEmail(email: string): Promise<UserEntity | null> {
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.email = :email', { email })
+      .getOne();
+  }
+
   create(email: string, passwordHash: string): Promise<UserEntity> {
     const user = this.usersRepository.create({ email, passwordHash });
 

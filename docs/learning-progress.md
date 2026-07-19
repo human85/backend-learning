@@ -16,7 +16,7 @@
 - 状态：进行中
 - 30 天计划：第 1 周已完成，开始第 2 周
 - 当前焦点项目：`apps/mini-saas/`
-- 实践进度：Projects CRUD 已持久化；User 表和 `POST /auth/register` 已完成，注册使用 Argon2id、邮箱规范化、唯一冲突 `409` 和显式公开响应
+- 实践进度：Projects CRUD 已持久化；注册与登录凭证校验已完成，登录专用查询显式加载密码哈希，失败统一返回 `401`
 
 ## 已接触的知识
 
@@ -51,17 +51,19 @@
 | 密码哈希 | 理解中 | 已解释 salt、单向验证和慢哈希价值；真实测试证明相同密码产生不同 Argon2id 哈希并可 verify |
 | 用户注册 | 理解中 | 已实现 DTO、邮箱规范化、哈希、数据库唯一竞态映射和安全公开响应，并通过真实 e2e 验证 |
 | 跨模块 Provider | 接触过 | AuthModule 导入 UsersModule，UsersModule 导出 UsersService 供 AuthService 注入 |
+| 登录凭证校验 | 理解中 | 已能识别账号枚举风险和持续身份需求；实现登录专用查询、Argon2 verify 与统一 `401` 并通过 e2e 验证 |
+| Cookie、Session 与 JWT | 接触过 | 已理解登录后仍需持久化身份；正在区分 Cookie 传输载体、服务端 Session 和自包含 JWT 的职责 |
 
 ## 当前学习任务
 
-实现用户登录：显式查询默认隐藏的 passwordHash，用 Argon2 verify 校验密码，并对邮箱不存在和密码错误统一返回 `401 Unauthorized`。
+选择登录状态保持方案：区分 Cookie、Session 和 JWT 的职责与安全边界，为浏览器端 Mini SaaS 选择第一版方案。
 
 ## 下一步完成标准
 
-- 登录成功能够确认用户身份，但暂不急于签发 JWT 或 Cookie。
-- 邮箱不存在和密码错误使用相同错误响应，避免泄漏账号是否存在。
-- UsersService 只有登录专用查询会显式选择 passwordHash，普通查询继续默认隐藏。
-- 单元测试 mock 密码验证，e2e 使用真实 Argon2 哈希验证正确和错误密码路径。
+- 能说明 Cookie 是浏览器保存并自动携带数据的机制，不等同于 Session 或 JWT。
+- 能比较服务端 Session ID Cookie 与 JWT Cookie 的状态位置、注销方式和复杂度。
+- 为当前浏览器端 Mini SaaS 选择一种第一版方案，并说明 CSRF、XSS、过期和密钥配置中的基本边界。
+- 用 e2e 验证登录后能够访问受保护接口，未登录请求被拒绝。
 
 ## 困惑与阻塞
 

@@ -9,10 +9,19 @@ describe('UsersService', () => {
     create: jest.fn(),
     save: jest.fn(),
     findOneBy: jest.fn(),
+    createQueryBuilder: jest.fn(),
+  };
+  const queryBuilder = {
+    addSelect: jest.fn(),
+    where: jest.fn(),
+    getOne: jest.fn(),
   };
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    queryBuilder.addSelect.mockReturnValue(queryBuilder);
+    queryBuilder.where.mockReturnValue(queryBuilder);
+    usersRepository.createQueryBuilder.mockReturnValue(queryBuilder);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -35,6 +44,25 @@ describe('UsersService', () => {
     expect(usersRepository.findOneBy).toHaveBeenCalledWith({
       email: user.email,
     });
+  });
+
+  it('should explicitly select credentials for login', async () => {
+    const user = {
+      id: 1,
+      email: 'user@example.com',
+      passwordHash: 'password-hash',
+    };
+    queryBuilder.getOne.mockResolvedValue(user);
+
+    await expect(
+      usersService.findCredentialsByEmail(user.email),
+    ).resolves.toEqual(user);
+    expect(usersRepository.createQueryBuilder).toHaveBeenCalledWith('user');
+    expect(queryBuilder.addSelect).toHaveBeenCalledWith('user.passwordHash');
+    expect(queryBuilder.where).toHaveBeenCalledWith('user.email = :email', {
+      email: user.email,
+    });
+    expect(queryBuilder.getOne).toHaveBeenCalled();
   });
 
   it('should create and save a user', async () => {

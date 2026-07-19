@@ -145,3 +145,12 @@
 - `POST /auth/register` 校验输入、规范化邮箱、生成哈希并只返回公开字段；重复邮箱的提前检查和数据库 `23505` 都映射为 `409 Conflict`。
 - 单元测试分别覆盖 Controller 委托、AuthService 业务、UsersService Repository 和真实 PasswordService；e2e 验证真实数据库只保存 Argon2id 哈希、响应无敏感字段及关键 `400`/`409` 路径。
 - 25 个单元测试、23 个 e2e、构建和 lint 全部通过；下一步先实现凭证校验，再选择身份保持方案。
+
+## 2026-07-19｜实现登录凭证校验
+
+- 学习者识别出邮箱不存在返回 `404`、密码错误返回 `401` 会泄漏账号是否存在，并指出登录后仍需要 JWT、Cookie 等持续身份机制。
+- 进一步区分 Cookie 是浏览器保存并自动携带数据的载体，Session ID 或 JWT 才是其中承载的身份凭据。
+- UsersService 新增登录专用 `findCredentialsByEmail()`，通过 QueryBuilder 显式加载默认 `select: false` 的 passwordHash；普通查询的 Entity 字段仍存在，但值为 `undefined`。
+- AuthService 使用共享方法规范化邮箱和映射公开用户；登录通过 Argon2 verify 校验，邮箱不存在和密码错误统一返回 `401 Invalid email or password`。
+- AuthController 使用 `@HttpCode(200)` 覆盖 POST 默认 `201`；当前成功响应只证明本次凭证正确，尚未建立后续请求的身份状态。
+- 30 个单元测试、25 个 e2e、构建和 lint 全部通过；下一步比较 Session 与 JWT 并选择第一版身份保持方案。
