@@ -2,13 +2,13 @@
 
 ## 先区分五个概念
 
-| 概念 | 在当前仓库中的含义 |
-| --- | --- |
-| Git 仓库 | 由根目录 `.git/` 管理的一整段版本历史 |
-| Monorepo | 在同一个 Git 仓库中管理多个项目的组织策略 |
-| Workspace | pnpm 发现、安装和运行多个 package 的机制 |
-| Package | 具有 `package.json` 的依赖与脚本单元 |
-| Application | 能独立启动和部署的程序，例如 Mini SaaS |
+| 概念        | 在当前仓库中的含义                        |
+| ----------- | ----------------------------------------- |
+| Git 仓库    | 由根目录 `.git/` 管理的一整段版本历史     |
+| Monorepo    | 在同一个 Git 仓库中管理多个项目的组织策略 |
+| Workspace   | pnpm 发现、安装和运行多个 package 的机制  |
+| Package     | 具有 `package.json` 的依赖与脚本单元      |
+| Application | 能独立启动和部署的程序，例如 Mini SaaS    |
 
 Monorepo 是仓库的组织方式；Workspace 是包管理器提供的工具。可以把 Monorepo 看成一栋楼，workspace package 是楼里的房间，`pnpm-workspace.yaml` 是房间清单，而 pnpm 是负责统一管理的物业系统。
 
@@ -24,6 +24,18 @@ packages:
 ```
 
 根 `package.json` 是编排 package，保存跨项目命令；`apps/mini-saas/package.json` 才声明 NestJS 依赖和应用脚本。`pnpm install` 从根目录安装整个 workspace，并用一份 `pnpm-lock.yaml` 锁定版本，但每个 package 仍只能依赖自己声明的包。
+
+## 根级工具与应用依赖
+
+依赖的归属取决于使用范围，而不是“一律放根目录”或“一律放应用”：
+
+- NestJS、TypeORM 等只服务 Mini SaaS 运行和构建的依赖，由 `apps/mini-saas/package.json` 声明。
+- Prettier、Husky 和 lint-staged 等需要从仓库根目录统一作用于多个应用、文档和 Git 提交的工具，由根 `package.json` 声明。
+- 根 `prettier.config.mjs` 是整个仓库的统一格式规则，workspace 应用不再复制一份相同配置。
+
+如果 formatter 只安装在嵌套应用中，从 monorepo 根目录执行 `pnpm exec prettier` 会找不到命令；某些以仓库根为项目边界的编辑环境也可能无法自动发现它。根级声明让 CLI 和编辑环境都有稳定的发现入口，但保存时是否触发仍由具体编辑环境决定。
+
+提交前检查继续分层执行：Husky 监听 Git `pre-commit`，lint-staged 只选择已暂存文件，Prettier 格式化所有支持的文件，Mini SaaS 的代码再交给它自己的 ESLint。这样既避免每次提交扫描整个仓库，也不会把某个应用的 ESLint 规则提前套到未来所有 workspace。
 
 ## 三类常用命令
 
@@ -52,6 +64,7 @@ pnpm --filter @backend-learning/mini-saas test
 1. 如果删除 `pnpm-workspace.yaml`，Git 仓库是否仍然是 Monorepo？pnpm 又会失去什么能力？
 2. NestJS 依赖为什么应放在 Mini SaaS 的 `package.json`，而不是根目录？
 3. `pnpm test` 与带 `--filter` 的测试命令在目标范围上有什么区别？
+4. 为什么 Prettier 适合放在根项目，而 TypeORM 仍应属于 Mini SaaS？
 
 ## 官方资料
 

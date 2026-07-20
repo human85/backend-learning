@@ -25,11 +25,11 @@ Controller 单元测试可以用 `useValue` 替换真实 Service：
 
 ## 三种测试视角
 
-| 测试 | 使用的依赖 | 主要验证 | 看不到什么 |
-| --- | --- | --- | --- |
-| Controller 单元测试 | mock Service | Controller 的委托和返回 | 真实 Service、HTTP 路由 |
-| Service 单元测试 | 真实 Service | 业务方法的实际规则 | Controller 和 HTTP |
-| e2e 测试 | 真实应用 | 路由、注入、序列化和响应 | 通常不精确定位内部故障层 |
+| 测试                | 使用的依赖   | 主要验证                 | 看不到什么               |
+| ------------------- | ------------ | ------------------------ | ------------------------ |
+| Controller 单元测试 | mock Service | Controller 的委托和返回  | 真实 Service、HTTP 路由  |
+| Service 单元测试    | 真实 Service | 业务方法的实际规则       | Controller 和 HTTP       |
+| e2e 测试            | 真实应用     | 路由、注入、序列化和响应 | 通常不精确定位内部故障层 |
 
 mock 让测试更快、更聚焦，但它可能与真实实现不一致。因此不能因为 Controller 的 mock 测试通过，就断定完整接口一定正确。
 

@@ -74,3 +74,11 @@
 - 决策：Mini SaaS 第一版使用 HttpOnly Cookie 携带随机 Session ID，Session 状态保存在 PostgreSQL；不在 localStorage 保存身份凭据，也不使用进程内 MemoryStore。
 - 原因：当前应用以浏览器为主要客户端，已经依赖 PostgreSQL；服务端 Session 更容易理解身份状态位置、立即注销和单独撤销，并能在 API 重启或多实例之间继续工作。
 - 影响：sessions 表必须通过 migration 管理；登录后重新生成 Session ID，Cookie 显式设置 HttpOnly、SameSite 和生产环境 Secure；后续部署还要配置 HTTPS、可信代理、CSRF 防护和过期策略。
+
+## D-011｜格式化与提交检查由 Monorepo 根项目统一管理
+
+- 日期：2026-07-20
+- 状态：有效
+- 决策：根项目声明 Prettier、Husky 和 lint-staged，保存统一格式配置并在提交前处理已暂存文件；应用不复制相同的 Prettier 配置。
+- 原因：格式化和 Git 提交检查作用于多个 workspace 应用、文档和根配置。只在嵌套应用安装会让仓库根无法解析工具，也不利于编辑环境稳定发现。
+- 影响：根 `pnpm format` 执行写入格式化，`pnpm format:check` 只检查；pre-commit 先运行 Prettier，再让 Mini SaaS 代码进入应用自己的 ESLint。Mini SaaS 继续独立管理 NestJS、TypeORM、ESLint 等应用级依赖和规则。

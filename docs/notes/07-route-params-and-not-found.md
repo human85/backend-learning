@@ -35,7 +35,7 @@ Controller 单元测试直接调用 `getProject(1)`，Service 单元测试直接
 如果删除 ParseIntPipe，运行时会比较：
 
 ```ts
-1 === '1' // false
+1 === '1'; // false
 ```
 
 单元测试仍可能通过，但真实 `GET /projects/1` 会错误地得到 `404`。e2e 从 HTTP 请求开始，才能验证 Pipe、Controller 和 Service 的组合行为。

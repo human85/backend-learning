@@ -7,9 +7,20 @@
   "scripts": {
     "dev": "pnpm --filter @backend-learning/mini-saas start:dev",
     "build": "pnpm --recursive --if-present build",
-    "format": "pnpm --recursive --if-present format",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "lint": "pnpm --recursive --if-present lint",
+    "prepare": "husky",
     "test": "pnpm --recursive --if-present test",
     "test:e2e": "pnpm --filter @backend-learning/mini-saas test:e2e"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.4.2"
+  },
+  "lint-staged": {
+    "*": "prettier --ignore-unknown --write",
+    "apps/mini-saas/**/*.{js,mjs,cjs,ts}": "pnpm --filter @backend-learning/mini-saas exec eslint --fix"
   }
 }

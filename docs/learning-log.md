@@ -181,3 +181,11 @@
 - 学习者亲手在共享 `configureApp()` 中配置指定的本地前端 origin 和 credentials，避免生产启动与 e2e 配置漂移。
 - 发现 `INestApplication.enableCors()` 的 options 参数为 `any`，因此编辑器无法补全或检查属性；将配置对象显式标注为 CorsOptions，恢复类型约束。
 - 新增预检 e2e，验证 `Access-Control-Allow-Origin` 与 `Access-Control-Allow-Credentials`；39 个单元测试、31 个 e2e、构建和 lint 全部通过。
+
+## 2026-07-20｜统一 Monorepo 根级格式化工具
+
+- 对比 Ambassador Portal 与 backend-learning，确认前者从仓库根可解析 Prettier，而后者原本只在 `apps/mini-saas` 内安装和配置；根执行实际返回 `Command "prettier" not found`。
+- 修正了把保存行为直接归因于 VS Code 设置的假设；项目级工具发现与具体编辑器的保存触发是两个不同问题。
+- 将 Prettier 声明为真正的根级工具，新增根 `prettier.config.mjs`、忽略文件和 `format:check`，删除 Mini SaaS 重复配置。
+- 参考 Ambassador Portal 增加根级 Husky 与 lint-staged；pre-commit 只处理暂存文件，所有支持的文件先由 Prettier 格式化，Mini SaaS 代码再运行自身 ESLint。
+- 根目录已能解析 Prettier 3.9.5，Mini SaaS 文件能定位到根配置；首次全仓格式化只调整排版，实际保存行为仍需学习者在当前编辑环境中确认。
