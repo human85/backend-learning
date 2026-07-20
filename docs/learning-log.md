@@ -213,3 +213,12 @@
 - 处理 TypeScript 6 与旧版 Vite 指南的边界：移除已废弃的 `baseUrl`，只保留 `paths`；OXLint 仅对 CLI 生成的 UI 组件关闭 Fast Refresh 导出警告。
 - 真实浏览器验证登录 Mutation、刷新后 `/auth/me` 恢复用户、注销 Mutation 回到未登录界面；移动宽度无横向溢出、控制台无错误，测试用户随后从开发数据库精确清理。
 - 前端 3 个测试文件共 10 项通过，OXLint、TypeScript 与 Vite build 通过；下一步用相同方式接入 Projects CRUD。
+
+## 2026-07-20｜集中校验后端运行环境
+
+- 学习者正确预测缺失 `DATABASE_URL` 或 `SESSION_SECRET` 会导致启动失败，也识别出短 Session 密钥和硬编码生产 Origin 的风险；进一步区分了“服务器能启动但浏览器 CORS 联调失败”的部署配置问题。
+- 明确 TypeScript 类型在编译时消失，无法保护进程外部提供的环境变量；使用 Joi schema 在 ConfigModule 初始化时执行运行时校验。
+- 集中约束 `NODE_ENV`、PostgreSQL URL、至少 32 字符的 Session Secret 和 HTTP(S) 前端 Origin，并通过 `abortEarly: false` 一次报告多项缺失配置。
+- CORS 改为读取已验证的 `FRONTEND_ORIGIN`，开发与测试配置示例同步声明完整配置契约。
+- 新增 4 个 schema 单元测试；43 个单元测试、31 个 e2e、lint 和 build 通过，真实覆盖短密钥时 AppModule 在监听端口前退出。
+- 学习重点明确回到后端闭环；前端只保留为认证、授权和部署行为的最小验证客户端，下一步进入 Dockerfile 与 Compose。

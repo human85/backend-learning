@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
@@ -54,12 +55,16 @@ describe('AppController (e2e)', () => {
   });
 
   it('allows the frontend origin to make credentialed requests', () => {
+    const frontendOrigin = app
+      .get(ConfigService)
+      .getOrThrow<string>('FRONTEND_ORIGIN');
+
     return request(app.getHttpServer())
       .options('/auth/me')
-      .set('Origin', 'http://localhost:5173')
+      .set('Origin', frontendOrigin)
       .set('Access-Control-Request-Method', 'GET')
       .expect(204)
-      .expect('Access-Control-Allow-Origin', 'http://localhost:5173')
+      .expect('Access-Control-Allow-Origin', frontendOrigin)
       .expect('Access-Control-Allow-Credentials', 'true');
   });
 

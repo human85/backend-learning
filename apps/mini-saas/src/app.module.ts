@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { environmentValidationSchema } from './config/environment.validation';
 import { createDatabaseOptions } from './database/database-options';
 import { ProjectsModule } from './projects/projects.module';
 import { SessionModule } from './session/session.module';
@@ -14,6 +15,10 @@ import { SessionModule } from './session/session.module';
       isGlobal: true,
       envFilePath:
         process.env.NODE_ENV === 'test' ? ['.env.test.local', '.env'] : '.env',
+      validationSchema: environmentValidationSchema,
+      validationOptions: {
+        abortEarly: false,
+      },
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],

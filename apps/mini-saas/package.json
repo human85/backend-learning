@@ -34,6 +34,7 @@
     "class-validator": "^0.15.1",
     "connect-pg-simple": "^10.0.0",
     "express-session": "^1.19.0",
+    "joi": "^18.2.3",
     "pg": "^8.22.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",

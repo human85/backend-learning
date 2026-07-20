@@ -70,13 +70,15 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 学习者指出前端不应手写重复的异步请求状态和大量 CSS；引入 TanStack Query、Tailwind CSS 与 shadcn/ui，使前端保持服务于后端闭环的薄客户端定位。
 - `/auth/me` 的 `401` 在 Query 边界转换为未登录数据，其他失败保留为错误；登录和注销 Mutation 直接更新 `['auth', 'current-user']` 缓存。
 - 真实浏览器验证登录、刷新后从 PostgreSQL Session 恢复用户、注销后回到登录页；桌面与移动宽度无横向溢出、控制台无错误，前端测试增至 10 项。
+- 使用 Joi 在 ConfigModule 加载时集中校验 `NODE_ENV`、`DATABASE_URL`、`SESSION_SECRET` 和 `FRONTEND_ORIGIN`；缺失、格式错误或短密钥会在应用监听端口前直接失败。
+- CORS 不再硬编码本地地址，而是读取已验证的 `FRONTEND_ORIGIN`；环境 schema 单元测试、真实短密钥失败实验、43 个单元测试、31 个 e2e、lint 和 build 均通过。
 
 ## 下一项应用课程
 
-开始前端联调：
+进入 Docker 与本地部署：
 
-1. 接入只属于当前用户的 Projects CRUD，并用 Query 缓存反映增删改结果。
-2. 在真实浏览器验证刷新持久化、`404` 授权边界和注销后的 `401`。
-3. 将本地 API URL 和前端 Origin 移入环境配置。
+1. 编写多阶段 Dockerfile，明确构建环境与运行环境的区别。
+2. 使用 Compose 组织 API 和 PostgreSQL，学习容器网络、健康检查和持久化卷。
+3. 在容器环境显式执行 migration，并通过日志定位一次连接或配置错误。
 
 完成标准仍以 `docs/learning-progress.md` 的当前快照为准。
