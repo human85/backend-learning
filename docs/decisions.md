@@ -90,3 +90,11 @@
 - 决策：浏览器客户端作为独立 workspace 放在 `apps/mini-saas-web/`，使用 React、TypeScript 和 Vite；第一阶段通过原生 fetch 封装直接调用 NestJS API。
 - 原因：学习者已经具备前端经验，当前目标是清晰观察浏览器 → CORS → Cookie → Session → API 链路，暂不引入 Next.js 服务端层或额外 HTTP 库。
 - 影响：前端默认端口 5173；统一 `apiRequest` 强制携带 credentials，并负责 HTTP 错误与 204 响应。页面视觉设计在认证和 Projects 完整联调后再按实际需要处理。
+
+## D-013｜前端优先复用成熟的状态、样式与组件方案
+
+- 日期：2026-07-20
+- 状态：有效
+- 决策：Mini SaaS 前端使用 TanStack Query 管理服务端状态，使用 Tailwind CSS 和 shadcn/ui 组织界面；不在业务组件中重复手写请求生命周期、基础组件或大体量 CSS。
+- 原因：学习重点是后端闭环，学习者已经具备前端经验；成熟工具能减少非核心实现时间，同时让缓存更新、错误状态和 UI 组合更接近真实工作项目。
+- 影响：`apiRequest` 继续负责传输边界，feature API 负责 endpoint 合同，Query/Mutation 负责缓存和异步状态，React 本地状态只保存纯界面数据。新增界面优先检索并组合已有 shadcn 组件，样式以 Tailwind 布局类和语义主题变量为主。

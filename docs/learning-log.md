@@ -204,3 +204,12 @@
 - 新增 register、login、getCurrentUser 和 logout 函数，统一复用 `apiRequest`，只表达请求路径、方法、JSON 请求体和返回类型。
 - 为 `apiRequest` 增加重载：指定泛型的 JSON 接口返回对应数据，无泛型的 `204` 接口返回 void，避免所有调用方都被无意义的 undefined 联合类型影响。
 - 4 个认证合同测试覆盖四条 endpoint，加上请求层测试共 8 项；TypeScript build 还发现并修正测试 mock 对重载签名的错误推断，前后端 lint 与 build 通过。
+
+## 2026-07-20｜用 TanStack Query 跑通浏览器认证闭环
+
+- 学习者正确提出用户状态可以用 `PublicUser | null | undefined` 表达已登录、未登录和检查中，随后进一步指出手写请求状态、大量 CSS 与自建基础组件不符合后端优先的学习目标。
+- 将认证页面改为 TanStack Query：`/auth/me` Query 管理加载与错误，登录和注销 Mutation 通过 `setQueryData` 更新当前用户缓存；只有表单输入和登录/注册模式保留为组件本地状态。
+- 初始化 Tailwind CSS v4 与 shadcn/ui，使用 Card、Tabs、Field、Input、Button、Alert、Skeleton 和 Spinner 组合最小认证界面，删除手写 `App.css`。
+- 处理 TypeScript 6 与旧版 Vite 指南的边界：移除已废弃的 `baseUrl`，只保留 `paths`；OXLint 仅对 CLI 生成的 UI 组件关闭 Fast Refresh 导出警告。
+- 真实浏览器验证登录 Mutation、刷新后 `/auth/me` 恢复用户、注销 Mutation 回到未登录界面；移动宽度无横向溢出、控制台无错误，测试用户随后从开发数据库精确清理。
+- 前端 3 个测试文件共 10 项通过，OXLint、TypeScript 与 Vite build 通过；下一步用相同方式接入 Projects CRUD。

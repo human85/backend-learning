@@ -39,7 +39,20 @@ auth API 模块只描述 HTTP 合同：
 - getCurrentUser 使用浏览器自动携带的 Cookie 调用 `/auth/me`。
 - logout 销毁服务端 Session，并返回 204 空响应。
 
-这些函数不保存 React 状态。后续界面负责在应用启动时调用 getCurrentUser，并根据成功用户或 401 决定显示已登录或未登录状态。
+这些函数不保存 React 状态。TanStack Query 在应用启动时调用 getCurrentUser：`401` 被转换为 `null`，表示已确认未登录；用户对象表示已登录；Query pending 表示仍在检查；其他异常保留为错误界面。
+
+## 为什么不在组件里手写请求状态
+
+认证与 Projects 都属于服务端状态：它们有加载、错误、缓存、失效、重试和多个组件共享等共同问题。每个页面自己组合 useEffect、isLoading、error 和 user 会重复造轮子，也容易产生状态不同步。
+
+当前边界是：
+
+- apiRequest 处理 HTTP 传输规则。
+- auth.api 描述 endpoint 合同。
+- TanStack Query 管理服务端数据生命周期和缓存。
+- React useState 只管理邮箱、密码、标签页等纯界面状态。
+
+登录成功后把用户写入 `['auth', 'current-user']` 缓存；注销成功后把它改为 `null`。刷新页面会重建内存缓存，因此仍需重新请求 `/auth/me`，由服务端 Session 恢复身份。
 
 ## 复习问题
 

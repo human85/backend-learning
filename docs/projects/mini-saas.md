@@ -7,7 +7,7 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 ## 当前状态
 
 - 路径：API 位于 `apps/mini-saas/`，浏览器客户端位于 `apps/mini-saas-web/`
-- 技术栈：Node.js、TypeScript、NestJS 11、TypeORM、PostgreSQL 17、React 19、Vite 8、Jest、Vitest
+- 技术栈：Node.js、TypeScript、NestJS 11、TypeORM、PostgreSQL 17、React 19、Vite 8、TanStack Query、Tailwind CSS、shadcn/ui、Jest、Vitest
 - 阶段：NestJS、PostgreSQL、认证授权基础完成，进入前后端联调
 - 30 天里程碑：第 2 周已完成，开始第 3 周
 - 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；认证支持注册、登录、当前用户和注销；已登录用户只能 CRUD 自己的项目
@@ -67,14 +67,16 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 使用 Vitest mock fetch，验证请求选项和 Cookie 凭证、成功 JSON、204 空响应、HTTP 错误消息与未知错误回退；4 个前端测试、39 个后端单元测试、前后端 lint 和 build 全部通过。
 - 前端按 auth feature 新增 register、login、getCurrentUser 和 logout 函数；API 泛型重载区分 JSON 响应与 `void` 响应，4 个合同测试验证路径、方法和请求体。
 - 前端测试累计 8 项，前后端 lint 与 build 通过；认证 API 模块只表达 HTTP 合同，不提前保存 React 用户状态。
+- 学习者指出前端不应手写重复的异步请求状态和大量 CSS；引入 TanStack Query、Tailwind CSS 与 shadcn/ui，使前端保持服务于后端闭环的薄客户端定位。
+- `/auth/me` 的 `401` 在 Query 边界转换为未登录数据，其他失败保留为错误；登录和注销 Mutation 直接更新 `['auth', 'current-user']` 缓存。
+- 真实浏览器验证登录、刷新后从 PostgreSQL Session 恢复用户、注销后回到登录页；桌面与移动宽度无横向溢出、控制台无错误，前端测试增至 10 项。
 
 ## 下一项应用课程
 
 开始前端联调：
 
-1. 建立最小认证界面，并在浏览器观察 Session Cookie 链路。
-2. 刷新页面时通过 `/auth/me` 恢复用户，注销后回到未登录状态。
-3. 接入只属于当前用户的 Projects CRUD。
-4. 将本地 API URL 和前端 Origin 移入环境配置。
+1. 接入只属于当前用户的 Projects CRUD，并用 Query 缓存反映增删改结果。
+2. 在真实浏览器验证刷新持久化、`404` 授权边界和注销后的 `401`。
+3. 将本地 API URL 和前端 Origin 移入环境配置。
 
 完成标准仍以 `docs/learning-progress.md` 的当前快照为准。

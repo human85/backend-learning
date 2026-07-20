@@ -16,7 +16,7 @@
 - 状态：进行中
 - 30 天计划：第 1、2 周已完成，开始第 3 周
 - 当前焦点项目：`apps/mini-saas/` 与 `apps/mini-saas-web/`
-- 实践进度：API 的认证授权与 CORS 已完成；React + Vite 前端已建立统一 fetch 请求层和注册、登录、当前用户、注销 API 函数，下一步完成浏览器认证界面联调
+- 实践进度：API 的认证授权与 CORS 已完成；React 前端已通过 TanStack Query、Tailwind CSS 和 shadcn/ui 跑通注册、登录、刷新恢复 Session 与注销，下一步接入 Projects CRUD
 
 ## 已接触的知识
 
@@ -62,17 +62,18 @@
 | 第三方类型边界                       | 接触过 | 发现 NestJS `enableCors` 参数为 `any` 导致无补全，使用显式 CorsOptions 恢复配置对象的类型检查                   |
 | Fetch 响应与错误边界                 | 理解中 | 已能区分 HTTP 失败仍 resolve、网络或 CORS 失败会 reject，以及 `204` 不能解析 JSON；亲手完成统一请求函数         |
 | 前端 API 请求封装                    | 理解中 | `apiRequest` 统一 base URL、强制携带 Session Cookie、转换 ApiError 并处理空响应，4 个 Vitest 行为测试通过       |
+| TanStack Query 服务端状态            | 接触过 | `/auth/me` 使用 Query 管理加载、成功和失败；登录与注销 Mutation 直接更新当前用户缓存，刷新后重新向 Session 求证 |
 
 ## 当前学习任务
 
-建立最小认证界面，通过真实浏览器完成注册、登录、刷新恢复当前用户和注销联调。
+在认证状态基础上接入当前用户自己的 Projects 列表、创建、更新和删除，继续观察认证与资源授权如何组合。
 
 ## 下一步完成标准
 
-- 前端注册和登录请求使用统一 `apiRequest`，不重复处理 base URL 与 credentials。
-- 登录后调用 `/auth/me` 能恢复公开用户，刷新页面后状态仍然存在。
-- 注销后 `/auth/me` 返回 `401`，前端回到未登录状态。
-- 在浏览器 Network 中确认登录响应设置 Cookie、后续请求自动携带 Cookie。
+- Projects 请求继续复用统一 `apiRequest` 和 TanStack Query，不在组件内手写请求生命周期。
+- 创建项目后列表缓存正确更新，只显示当前 Session 用户拥有的数据。
+- 更新和删除操作覆盖成功、`404` 与未登录状态，并能解释这些状态分别由哪一层产生。
+- 真实浏览器完成至少一轮 Projects CRUD，刷新后数据仍从 PostgreSQL 恢复。
 
 ## 困惑与阻塞
 
