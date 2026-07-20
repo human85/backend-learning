@@ -189,3 +189,11 @@
 - 将 Prettier 声明为真正的根级工具，新增根 `prettier.config.mjs`、忽略文件和 `format:check`，删除 Mini SaaS 重复配置。
 - 参考 Ambassador Portal 增加根级 Husky 与 lint-staged；pre-commit 只处理暂存文件，所有支持的文件先由 Prettier 格式化，Mini SaaS 代码再运行自身 ESLint。
 - 根目录已能解析 Prettier 3.9.5，Mini SaaS 文件能定位到根配置；首次全仓格式化只调整排版，实际保存行为仍需学习者在当前编辑环境中确认。
+
+## 2026-07-20｜建立前端 workspace 与统一请求层
+
+- 学习者正确判断 HTTP `401` 会让原生 fetch resolve、CORS 或网络失败会 reject、`204` 响应不能调用 `response.json()`。
+- 新增独立 `@backend-learning/mini-saas-web`，采用当前官方 React + TypeScript + Vite 模板；workspace glob 自动发现新应用，根脚本增加 API 与 Web 启动入口。
+- 当前 Vite 模板使用 OXLint，因此提交检查保持应用边界：NestJS 使用 ESLint，React 客户端使用 OXLint，不强行统一成一种工具。
+- 学习者亲手完成 `apiRequest` 并主动重构为失败分支优先的 early return；函数强制携带 Cookie、保留 RequestInit、处理 204 并把非 2xx 转为 ApiError。
+- 将运行时 JSON 先视为 unknown，兼容 NestJS 字符串或数组错误消息并提供未知错误回退；4 个 Vitest、39 个后端单元测试、前后端 lint、build 和全仓格式检查通过。

@@ -15,8 +15,8 @@
 - 阶段：前后端联调与本地工程化
 - 状态：进行中
 - 30 天计划：第 1、2 周已完成，开始第 3 周
-- 当前焦点项目：`apps/mini-saas/`
-- 实践进度：注册、登录、PostgreSQL Session 和 Project 归属授权已完成；API 已允许本地前端来源携带 Cookie，开始接入前端
+- 当前焦点项目：`apps/mini-saas/` 与 `apps/mini-saas-web/`
+- 实践进度：API 的认证授权与 CORS 已完成；React + Vite 前端 workspace 和统一 fetch 请求层已建立，下一步接入认证接口
 
 ## 已接触的知识
 
@@ -60,17 +60,19 @@
 | 资源归属授权                         | 理解中 | 已判断登录不等于拥有资源；Projects 的创建、列表、查询、更新和删除都使用 Session userId 限定范围                 |
 | CORS 与凭证请求                      | 接触过 | 已亲手配置指定前端 origin 和 credentials，并通过预检 e2e 验证响应头；正在区分浏览器 CORS、Cookie 和后端认证职责 |
 | 第三方类型边界                       | 接触过 | 发现 NestJS `enableCors` 参数为 `any` 导致无补全，使用显式 CorsOptions 恢复配置对象的类型检查                   |
+| Fetch 响应与错误边界                 | 理解中 | 已能区分 HTTP 失败仍 resolve、网络或 CORS 失败会 reject，以及 `204` 不能解析 JSON；亲手完成统一请求函数         |
+| 前端 API 请求封装                    | 理解中 | `apiRequest` 统一 base URL、强制携带 Session Cookie、转换 ApiError 并处理空响应，4 个 Vitest 行为测试通过       |
 
 ## 当前学习任务
 
-确定 Mini SaaS 前端的技术方案和 workspace 边界，建立最小前端应用并接入注册、登录与 `/auth/me`。
+为注册、登录、当前用户和注销建立前端 API 函数，并通过最小界面完成第一次真实浏览器联调。
 
 ## 下一步完成标准
 
-- 前端能够向 API 发起包含 `credentials: 'include'` 的请求。
-- 能通过注册、登录和 `/auth/me` 观察 Cookie Session 的建立与恢复。
-- 能区分前端可展示的 API 错误、浏览器 CORS 错误和真正的网络错误。
-- 确定一处统一的前端 API 请求封装，避免每个请求遗漏 credentials。
+- 前端注册和登录请求使用统一 `apiRequest`，不重复处理 base URL 与 credentials。
+- 登录后调用 `/auth/me` 能恢复公开用户，刷新页面后状态仍然存在。
+- 注销后 `/auth/me` 返回 `401`，前端回到未登录状态。
+- 在浏览器 Network 中确认登录响应设置 Cookie、后续请求自动携带 Cookie。
 
 ## 困惑与阻塞
 

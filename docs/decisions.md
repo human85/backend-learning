@@ -82,3 +82,11 @@
 - 决策：根项目声明 Prettier、Husky 和 lint-staged，保存统一格式配置并在提交前处理已暂存文件；应用不复制相同的 Prettier 配置。
 - 原因：格式化和 Git 提交检查作用于多个 workspace 应用、文档和根配置。只在嵌套应用安装会让仓库根无法解析工具，也不利于编辑环境稳定发现。
 - 影响：根 `pnpm format` 执行写入格式化，`pnpm format:check` 只检查；pre-commit 先运行 Prettier，再让 Mini SaaS 代码进入应用自己的 ESLint。Mini SaaS 继续独立管理 NestJS、TypeORM、ESLint 等应用级依赖和规则。
+
+## D-012｜Mini SaaS 前端使用 React + Vite 薄客户端
+
+- 日期：2026-07-20
+- 状态：有效
+- 决策：浏览器客户端作为独立 workspace 放在 `apps/mini-saas-web/`，使用 React、TypeScript 和 Vite；第一阶段通过原生 fetch 封装直接调用 NestJS API。
+- 原因：学习者已经具备前端经验，当前目标是清晰观察浏览器 → CORS → Cookie → Session → API 链路，暂不引入 Next.js 服务端层或额外 HTTP 库。
+- 影响：前端默认端口 5173；统一 `apiRequest` 强制携带 credentials，并负责 HTTP 错误与 204 响应。页面视觉设计在认证和 Projects 完整联调后再按实际需要处理。

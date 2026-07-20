@@ -11,13 +11,19 @@ packages/   多个项目真正需要复用时才创建的共享包
 docs/       学习进度、路线、日志、决策和专题笔记
 ```
 
-当前项目是 `apps/mini-saas/`。pnpm 通过根目录的 `pnpm-workspace.yaml` 发现各个项目，并使用一份根级 `pnpm-lock.yaml` 锁定整个仓库的依赖版本。
+当前 Mini SaaS 包含两个独立应用：
+
+- `apps/mini-saas/`：NestJS API。
+- `apps/mini-saas-web/`：React + Vite 浏览器客户端。
+
+pnpm 通过根目录的 `pnpm-workspace.yaml` 发现各个项目，并使用一份根级 `pnpm-lock.yaml` 锁定整个仓库的依赖版本。
 
 ## 开始使用
 
 ```bash
 pnpm install
-pnpm dev
+pnpm dev:api
+pnpm dev:web
 ```
 
 常用根级命令：
