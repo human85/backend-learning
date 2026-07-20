@@ -30,6 +30,17 @@ apiRequest(path, init)
 
 `response.json()` 的 TypeScript 返回类型不能证明服务器一定返回预期结构。当前实现先把它视为 unknown，再检查错误对象是否真的包含字符串或字符串数组 message。这与后端 DTO 的原则相同：静态类型不能替代运行时边界检查。
 
+## 认证 API 与登录状态分层
+
+auth API 模块只描述 HTTP 合同：
+
+- register 创建用户，但当前后端不会创建 Session。
+- login 校验密码并通过响应 Set-Cookie 建立 Session。
+- getCurrentUser 使用浏览器自动携带的 Cookie 调用 `/auth/me`。
+- logout 销毁服务端 Session，并返回 204 空响应。
+
+这些函数不保存 React 状态。后续界面负责在应用启动时调用 getCurrentUser，并根据成功用户或 401 决定显示已登录或未登录状态。
+
 ## 复习问题
 
 1. 为什么 API 返回 401 时 fetch 不会自动进入 catch？

@@ -65,13 +65,15 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 新增独立的 `@backend-learning/mini-saas-web` workspace，使用 React + TypeScript + Vite，默认 5173 端口与 API CORS 配置一致。
 - 学习者亲手实现统一 `apiRequest`：强制 `credentials: 'include'`、区分 HTTP 与网络失败、跳过 `204` JSON 解析并抛出带状态码的 ApiError。
 - 使用 Vitest mock fetch，验证请求选项和 Cookie 凭证、成功 JSON、204 空响应、HTTP 错误消息与未知错误回退；4 个前端测试、39 个后端单元测试、前后端 lint 和 build 全部通过。
+- 前端按 auth feature 新增 register、login、getCurrentUser 和 logout 函数；API 泛型重载区分 JSON 响应与 `void` 响应，4 个合同测试验证路径、方法和请求体。
+- 前端测试累计 8 项，前后端 lint 与 build 通过；认证 API 模块只表达 HTTP 合同，不提前保存 React 用户状态。
 
 ## 下一项应用课程
 
 开始前端联调：
 
-1. 实现注册、登录、当前用户和注销的前端 API 函数。
-2. 建立最小认证界面，并在浏览器观察 Session Cookie 链路。
+1. 建立最小认证界面，并在浏览器观察 Session Cookie 链路。
+2. 刷新页面时通过 `/auth/me` 恢复用户，注销后回到未登录状态。
 3. 接入只属于当前用户的 Projects CRUD。
 4. 将本地 API URL 和前端 Origin 移入环境配置。
 

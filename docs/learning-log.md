@@ -197,3 +197,10 @@
 - 当前 Vite 模板使用 OXLint，因此提交检查保持应用边界：NestJS 使用 ESLint，React 客户端使用 OXLint，不强行统一成一种工具。
 - 学习者亲手完成 `apiRequest` 并主动重构为失败分支优先的 early return；函数强制携带 Cookie、保留 RequestInit、处理 204 并把非 2xx 转为 ApiError。
 - 将运行时 JSON 先视为 unknown，兼容 NestJS 字符串或数组错误消息并提供未知错误回退；4 个 Vitest、39 个后端单元测试、前后端 lint、build 和全仓格式检查通过。
+
+## 2026-07-20｜建立前端认证 API 合同
+
+- 学习者正确判断注册只创建 User，不创建 Session；注册后直接访问 `/auth/me` 会返回 `401`，登录成功才通过 Set-Cookie 建立持续身份。
+- 新增 register、login、getCurrentUser 和 logout 函数，统一复用 `apiRequest`，只表达请求路径、方法、JSON 请求体和返回类型。
+- 为 `apiRequest` 增加重载：指定泛型的 JSON 接口返回对应数据，无泛型的 `204` 接口返回 void，避免所有调用方都被无意义的 undefined 联合类型影响。
+- 4 个认证合同测试覆盖四条 endpoint，加上请求层测试共 8 项；TypeScript build 还发现并修正测试 mock 对重载签名的错误推断，前后端 lint 与 build 通过。

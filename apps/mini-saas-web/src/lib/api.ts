@@ -29,10 +29,12 @@ export class ApiError extends Error {
   }
 }
 
+export function apiRequest<T>(path: string, init?: RequestInit): Promise<T>;
+export function apiRequest(path: string, init?: RequestInit): Promise<void>;
 export async function apiRequest<T>(
   path: string,
   init: RequestInit = {},
-): Promise<T | undefined> {
+): Promise<T | void> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     credentials: 'include',
