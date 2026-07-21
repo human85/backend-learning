@@ -106,3 +106,11 @@
 - 决策：Mini SaaS 使用 ConfigModule 加 Joi schema 集中校验运行环境；数据库地址、Session 密钥和前端 Origin 不再由各个使用点零散判断或硬编码。
 - 原因：环境变量是进程外部输入，TypeScript 无法提供运行时保证；错误配置应在应用监听端口前暴露，而不是等到首个请求或数据库操作才失败。
 - 影响：新增运行配置时必须同步 schema 和 `.env.example`；密钥只校验必要的结构条件，真实值继续由未提交的本地文件或部署平台管理；Docker 和生产部署必须显式提供全部必需变量。
+
+## D-015｜API 使用多阶段生产 Image
+
+- 日期：2026-07-21
+- 状态：有效
+- 决策：Mini SaaS API 使用 Node.js slim 多阶段 Dockerfile；pnpm 在构建阶段安装 workspace 依赖、编译并生成独立生产目录，最终 Runtime Image 只保留编译结果和生产依赖，并使用非 root 用户运行。
+- 原因：构建工具和源码不属于生产运行边界；分离阶段可以降低最终 Image 体积与攻击面，同时保持 pnpm lockfile 和 monorepo 构建可重复。
+- 影响：Docker build context 必须是仓库根目录；`.dockerignore` 不允许真实 `.env`、本机依赖或构建产物进入上下文；Image 必须经过真实构建和运行时依赖加载验证后才能提交。

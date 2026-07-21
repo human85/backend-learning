@@ -72,13 +72,16 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 真实浏览器验证登录、刷新后从 PostgreSQL Session 恢复用户、注销后回到登录页；桌面与移动宽度无横向溢出、控制台无错误，前端测试增至 10 项。
 - 使用 Joi 在 ConfigModule 加载时集中校验 `NODE_ENV`、`DATABASE_URL`、`SESSION_SECRET` 和 `FRONTEND_ORIGIN`；缺失、格式错误或短密钥会在应用监听端口前直接失败。
 - CORS 不再硬编码本地地址，而是读取已验证的 `FRONTEND_ORIGIN`；环境 schema 单元测试、真实短密钥失败实验、43 个单元测试、31 个 e2e、lint 和 build 均通过。
+- 安装并验证 Docker Desktop、Engine 与 Compose，`hello-world` 完成 Image 拉取、Container 创建和运行；区分关闭窗口与退出 Engine 对容器的影响。
+- 新增基于 Node 22 slim 的多阶段 API Dockerfile；构建阶段安装完整依赖并编译，pnpm deploy 生成生产目录，Runtime 阶段只复制 `dist` 和生产依赖并以非 root 的 `node` 用户启动。
+- 成功构建 `backend-learning/mini-saas:local`，在最终 Image 内实际执行 Argon2 哈希并加载 NestJS、TypeORM；确认没有源码与测试目录，最终大小约 325 MB。
 
 ## 下一项应用课程
 
 进入 Docker 与本地部署：
 
-1. 编写多阶段 Dockerfile，明确构建环境与运行环境的区别。
-2. 使用 Compose 组织 API 和 PostgreSQL，学习容器网络、健康检查和持久化卷。
-3. 在容器环境显式执行 migration，并通过日志定位一次连接或配置错误。
+1. 使用 Compose 组织 API 和 PostgreSQL，学习容器网络、健康检查和持久化卷。
+2. 在容器环境显式执行 migration，并通过日志定位一次连接或配置错误。
+3. 重建 API 与 PostgreSQL 容器，验证 Image、Container 和 Volume 的不同生命周期。
 
 完成标准仍以 `docs/learning-progress.md` 的当前快照为准。

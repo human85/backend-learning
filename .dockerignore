@@ -1,0 +1,16 @@
+.git
+.github
+.husky
+.vscode
+
+**/node_modules
+**/dist
+**/coverage
+
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.test.example
+
+apps/mini-saas-web
+docs

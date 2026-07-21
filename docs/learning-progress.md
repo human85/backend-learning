@@ -4,7 +4,7 @@
 
 ## 基本信息
 
-- 最近更新：2026-07-20
+- 最近更新：2026-07-21
 - 学习者背景：Web 前端工程师
 - 学习目标：通过真实 Mini SaaS 项目系统学习后端，逐步具备全栈开发能力
 - 第一轮目标：在 2026-08-18 前借助 AI 跑通一个可部署的前端 → API → 认证授权 → PostgreSQL → 测试 → Docker → 部署闭环
@@ -16,7 +16,7 @@
 - 状态：进行中
 - 30 天计划：第 1、2 周已完成，开始第 3 周
 - 当前焦点项目：`apps/mini-saas/` 与 `apps/mini-saas-web/`
-- 实践进度：API 的认证授权与浏览器认证闭环已完成；后端已集中校验数据库、Session 密钥、运行环境和前端 Origin，错误配置会在启动前失败；下一步进入 Dockerfile 与 Compose
+- 实践进度：API 的认证授权、浏览器认证闭环和启动配置校验已完成；Docker Desktop 已实际运行，第一个多阶段 API Image 构建并验证成功；下一步使用 Compose 连接 API 与 PostgreSQL
 
 ## 已接触的知识
 
@@ -64,10 +64,11 @@
 | 前端 API 请求封装                    | 理解中 | `apiRequest` 统一 base URL、强制携带 Session Cookie、转换 ApiError 并处理空响应，4 个 Vitest 行为测试通过                    |
 | TanStack Query 服务端状态            | 接触过 | `/auth/me` 使用 Query 管理加载、成功和失败；登录与注销 Mutation 直接更新当前用户缓存，刷新后重新向 Session 求证              |
 | 环境变量与启动校验                   | 理解中 | 已能判断缺失数据库或 Session 配置会启动失败、短密钥可运行但不安全、错误 CORS Origin 会导致生产联调失败；Joi 在启动前集中验证 |
+| Docker Image 与 Container            | 理解中 | 已能解释 Dockerfile、Image、Container 和 Volume 的区别；成功运行 hello-world 并构建 Mini SaaS 多阶段生产 Image               |
 
 ## 当前学习任务
 
-把 Mini SaaS API 与 PostgreSQL 容器化，理解镜像、容器、服务、网络、持久化卷和启动顺序分别解决什么问题。
+使用 Compose 运行 Mini SaaS API 与 PostgreSQL，理解服务名网络、持久化卷、健康检查、migration 和启动顺序分别解决什么问题。
 
 ## 下一步完成标准
 

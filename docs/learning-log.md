@@ -222,3 +222,12 @@
 - CORS 改为读取已验证的 `FRONTEND_ORIGIN`，开发与测试配置示例同步声明完整配置契约。
 - 新增 4 个 schema 单元测试；43 个单元测试、31 个 e2e、lint 和 build 通过，真实覆盖短密钥时 AppModule 在监听端口前退出。
 - 学习重点明确回到后端闭环；前端只保留为认证、授权和部署行为的最小验证客户端，下一步进入 Dockerfile 与 Compose。
+
+## 2026-07-21｜理解 Docker 基础并构建 API Image
+
+- 从“为什么需要一致运行环境”开始区分 Dockerfile、Image、Container、Compose 和 Volume；学习者能解释容器内 localhost、数据持久化和 Image 重建边界。
+- 区分 PostgreSQL 开源数据库软件、本地数据库实例与云托管服务；明确 `POSTGRES_PASSWORD` 用于官方 Image 首次初始化，`DATABASE_URL` 用于 API 每次连接。
+- 安装并验证 Docker Desktop 4.83、Engine 29.6 和 Compose 5.3；`hello-world` 成功完成拉取、创建、运行和 `--rm` 清理。
+- 新增根级 `.dockerignore` 和 Mini SaaS 多阶段 Dockerfile：构建阶段使用 pnpm workspace 安装与编译，deploy 阶段裁剪生产包，Runtime 阶段以非 root 用户运行 `dist/main.js`。
+- 第一次拉取 Node 基础 Image 时一个 layer 经 Shadowrocket 代理暂时停滞；保持代理开启重试后成功，区分网络传输故障与 Dockerfile 代码故障。
+- `backend-learning/mini-saas:local` 构建成功；最终 Image 内 Argon2 哈希、NestJS 和 TypeORM 加载通过，没有 TypeScript 源码和测试目录，下一步使用 Compose 接入 PostgreSQL、Volume 和 migration。
