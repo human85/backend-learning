@@ -12,11 +12,11 @@
 
 ## 当前阶段
 
-- 阶段：前后端联调与本地工程化
+- 阶段：部署与闭环验收
 - 状态：进行中
-- 30 天计划：第 1、2 周已完成，开始第 3 周
+- 30 天计划：第 1、2、3 周已完成，开始第 4 周
 - 当前焦点项目：`apps/mini-saas/` 与 `apps/mini-saas-web/`
-- 实践进度：API 的认证授权、浏览器认证闭环和启动配置校验已完成；多阶段 API Image 与 Compose 三服务链路已实际运行，API 和 PostgreSQL 重建后数据与 Session 均恢复；数据库故障诊断与生产 HTTPS 代理 Cookie 已验证；个人 Neon Free PostgreSQL 已创建，生产 Image 已在线执行并验证 4 条 migration，下一步部署 Render Free API
+- 实践进度：个人 Render Free API 已从 GitHub Dockerfile 成功构建并上线，公网健康检查、CORS、Secure Cookie、注册登录、当前用户、Projects CRUD 和注销均与 Neon 真实数据库验证通过；临时业务数据已清理，下一步部署免费前端并完成真实浏览器闭环
 
 ## 已接触的知识
 
@@ -69,16 +69,18 @@
 | 容器状态与日志诊断                   | 理解中 | 能区分 running、healthy、Exited (0) 与 Exited (1)，并根据 ENOTFOUND、ECONNREFUSED、28P01 和 42P01 判断故障所在层             |
 | HTTPS 代理与 Secure Cookie           | 接触过 | 已预测 Cookie 未正确携带会导致登录 `200` 后 `/auth/me` 仍为 `401`；e2e 验证生产环境需要信任前置 HTTPS 代理                   |
 | 托管 PostgreSQL 与线上 migration     | 接触过 | 已通过被忽略的本地连接配置，让生产 Docker Image 对 Neon 执行 4 条 migration，并查询确认表结构和迁移记录                      |
+| Render Docker 部署与线上验收         | 接触过 | 已从个人 GitHub 构建 Docker Image；公网验证健康、CORS、认证、Secure Cookie、资源 CRUD、注销和 Neon 数据清理                  |
 
 ## 当前学习任务
 
-使用 Render Free Web Service 从个人 GitHub 仓库构建并运行 API Docker Image，连接已经完成 migration 的 Neon PostgreSQL。
+部署免费前端并连接 Render API，在真实浏览器中验证 HTTPS、CORS、跨站 Cookie、Session 和页面刷新恢复身份。
 
 ## 下一步完成标准
 
-- 由 Render 从个人 GitHub 仓库的 Dockerfile 构建 API，并通过平台环境变量提供生产配置。
-- 健康检查通过，并能从 Render 日志识别构建、配置、数据库连接与启动阶段。
-- 验证健康检查、HTTPS Secure Cookie、注册登录、资源归属授权和 API 重启后的 Session 持久化。
+- 前端构建时读取线上 API 地址，并部署为免费静态站点。
+- API 的 `FRONTEND_ORIGIN` 与真实前端 URL 完全一致，浏览器预检通过。
+- 真实浏览器完成注册、登录、刷新恢复和注销；若跨站 Cookie 被 SameSite 阻止，先用网络证据复现再修复。
+- 重新部署或重启 API 后，原 Session 仍能从 Neon 恢复。
 
 ## 困惑与阻塞
 

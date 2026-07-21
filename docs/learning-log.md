@@ -264,3 +264,11 @@
 - 使用一次性本地 Container 连接远程 Neon，成功执行 CreateProjects、CreateUsers、CreateSessions 与 AddProjectOwner；事务提交后查询确认 public schema 含 migrations、projects、sessions、users，migration 记录数为 4。
 - Neon 生成的 `sslmode=require` 在当前 pg 版本仍按严格证书验证处理，但依赖提示未来大版本语义会变化；后续生产配置应显式使用当前依赖支持的严格验证模式，并在升级 pg 时复核。
 - 本地 migration Container 已删除，远程数据库表独立持久化；下一步由 Render Free Web Service 从个人 GitHub Dockerfile 构建 API，并注入生产环境变量连接同一个 Neon 数据库。
+
+## 2026-07-21｜将 API Docker Image 部署到 Render 并完成线上验收
+
+- 学习者使用独立个人 Render 账号，从公开的 `human85/backend-learning` main 分支创建 Free Web Service；选择 Docker、仓库根构建上下文和 `apps/mini-saas/Dockerfile`，生产变量保存在平台，健康检查使用 `/health`。
+- Render 成功构建提交 `464e87f` 并显示 Live；外部网页读取工具因新域名安全策略拒绝访问后，没有把工具限制误判为服务故障，改用 curl 验证公网 `/health` 返回 `{ status: 'ok' }`、根路由返回 `Hello World!`。
+- 用临时账号完成线上 CORS 预检、注册 `201`、登录 `200`、Secure/HttpOnly/SameSite Cookie、`/auth/me`、项目创建与列表、删除、注销，以及注销后原 Cookie 返回 `401`，证明 Render API、Neon 数据库和服务端 Session 链路真实可用。
+- 首次清理脚本因 shell 破坏 SQL 参数占位符而事务回滚；随后使用单引号保护 Node 脚本中的 `$1`，精确删除临时用户并确认 users、projects、sessions 均为 0。该故障属于运维脚本转义，不属于 API 或数据库错误。
+- Render Free 实例空闲后会休眠并产生约 50 秒以上冷启动，作为个人学习环境接受这一限制；下一步部署静态前端，并用真实浏览器验证不同免费子域之间的 CORS、SameSite Cookie 和刷新恢复。
