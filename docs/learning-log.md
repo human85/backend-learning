@@ -256,3 +256,11 @@
 - 学习者正确预测生产登录后 `/auth/me` 仍为 `401` 是 Cookie 没有正确携带；进一步定位到 HTTPS 在平台入口终止后，内部 HTTP 请求需要 NestJS 信任最近一层代理。
 - 新增生产代理 e2e，先复现登录响应存在 Session Cookie 但缺少 `Secure`，再在 production 配置中设置 `trust proxy = 1`；目标测试和完整 43 个单元测试、32 个 e2e、前端 10 个测试、lint、build、format 均通过。
 - 根 `pnpm test --runInBand` 曾把 Jest 专用参数传给 Vitest 并被拒绝，随后使用无额外参数的根 `pnpm test` 正确验证两个测试工具；下一步创建个人 Neon 数据库并执行 migration。
+
+## 2026-07-21｜创建 Neon PostgreSQL 并执行线上 migration
+
+- 学习者使用独立个人账号创建 Neon Free PostgreSQL；连接地址保存在 Git 已忽略的 `apps/mini-saas/.env.production.local`，没有进入聊天、命令参数、Docker Image 或提交。
+- 先验证连接地址结构，再进行只读连接；源码版 `migration:show` 未列出结果后没有盲目执行，改用实际生产 Docker Image 检查编译产物，确认 4 条 migration 均待执行。
+- 使用一次性本地 Container 连接远程 Neon，成功执行 CreateProjects、CreateUsers、CreateSessions 与 AddProjectOwner；事务提交后查询确认 public schema 含 migrations、projects、sessions、users，migration 记录数为 4。
+- Neon 生成的 `sslmode=require` 在当前 pg 版本仍按严格证书验证处理，但依赖提示未来大版本语义会变化；后续生产配置应显式使用当前依赖支持的严格验证模式，并在升级 pg 时复核。
+- 本地 migration Container 已删除，远程数据库表独立持久化；下一步由 Render Free Web Service 从个人 GitHub Dockerfile 构建 API，并注入生产环境变量连接同一个 Neon 数据库。

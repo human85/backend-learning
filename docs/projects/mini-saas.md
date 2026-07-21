@@ -81,13 +81,14 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 重建 API Container 后原 Cookie 恢复 Session；重建 PostgreSQL Container 后 4 条 migration、用户和 Session 继续存在，证明状态由 Volume 和数据库承载。实验业务数据随后清理，schema 与 migration 记录保留。
 - 使用错误数据库密码运行一次性 migration，观察客户端退出码 `1` 和 PostgreSQL `28P01` 认证日志；学习者能按 DNS、端口、认证和 schema 分层判断 ENOTFOUND、ECONNREFUSED、密码失败与表不存在，并正确识别 migration 的 `Exited (0)` 是正常完成。
 - 增加生产 HTTPS 代理 e2e：先复现登录响应缺少 `Secure` Cookie，再让生产应用只信任最近一层反向代理；带 `X-Forwarded-Proto: https` 的登录响应现已正确设置 Secure Session Cookie，完整 43 个单元测试、32 个 e2e、前端 10 个测试、lint 和 build 通过。
+- 创建个人 Neon Free PostgreSQL，连接地址只保存在 Git 忽略的 `.env.production.local`；使用生产 Docker Image 查询到 4 条待执行 migration，成功在线创建 migrations、projects、sessions、users，并再次确认 4 条 migration 全部完成。
 
 ## 下一项应用课程
 
 进入生产部署：
 
-1. 创建个人 Neon Free PostgreSQL 并执行已有 migration。
-2. 使用 Render Free Web Service 从当前 Dockerfile 部署 API，生产变量只保存在平台。
-3. 完成线上健康检查、HTTPS Secure Cookie、认证授权和数据持久化验证。
+1. 使用 Render Free Web Service 从当前 Dockerfile 部署 API，生产变量只保存在平台。
+2. 从 Render 构建与运行日志确认 Image、环境校验、Neon 连接和健康检查状态。
+3. 完成线上 HTTPS Secure Cookie、认证授权和数据持久化验证。
 
 完成标准仍以 `docs/learning-progress.md` 的当前快照为准。

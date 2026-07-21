@@ -16,7 +16,7 @@
 - 状态：进行中
 - 30 天计划：第 1、2 周已完成，开始第 3 周
 - 当前焦点项目：`apps/mini-saas/` 与 `apps/mini-saas-web/`
-- 实践进度：API 的认证授权、浏览器认证闭环和启动配置校验已完成；多阶段 API Image 与 Compose 三服务链路已实际运行，API 和 PostgreSQL 重建后数据与 Session 均恢复；已完成数据库故障分层诊断，并用 e2e 修复生产 HTTPS 代理后的 Secure Cookie；下一步使用个人免费 Render Web Service 与 Neon PostgreSQL 完成首次部署
+- 实践进度：API 的认证授权、浏览器认证闭环和启动配置校验已完成；多阶段 API Image 与 Compose 三服务链路已实际运行，API 和 PostgreSQL 重建后数据与 Session 均恢复；数据库故障诊断与生产 HTTPS 代理 Cookie 已验证；个人 Neon Free PostgreSQL 已创建，生产 Image 已在线执行并验证 4 条 migration，下一步部署 Render Free API
 
 ## 已接触的知识
 
@@ -68,16 +68,16 @@
 | Docker Compose 与容器网络            | 理解中 | 已运行 postgres、migrate、api 三个 Service，验证服务名连接、宿主机端口映射、健康检查、migration 顺序和 Volume 持久化         |
 | 容器状态与日志诊断                   | 理解中 | 能区分 running、healthy、Exited (0) 与 Exited (1)，并根据 ENOTFOUND、ECONNREFUSED、28P01 和 42P01 判断故障所在层             |
 | HTTPS 代理与 Secure Cookie           | 接触过 | 已预测 Cookie 未正确携带会导致登录 `200` 后 `/auth/me` 仍为 `401`；e2e 验证生产环境需要信任前置 HTTPS 代理                   |
+| 托管 PostgreSQL 与线上 migration     | 接触过 | 已通过被忽略的本地连接配置，让生产 Docker Image 对 Neon 执行 4 条 migration，并查询确认表结构和迁移记录                      |
 
 ## 当前学习任务
 
-使用个人免费服务完成首次线上部署：Render Free Web Service 运行 API Docker Image，Neon Free PostgreSQL 保存业务数据与 Session。
+使用 Render Free Web Service 从个人 GitHub 仓库构建并运行 API Docker Image，连接已经完成 migration 的 Neon PostgreSQL。
 
 ## 下一步完成标准
 
-- 创建独立于公司账号的免费 Neon PostgreSQL，并安全保存连接地址。
-- 对 Neon 数据库执行现有 migration，确认 4 条迁移和所需表结构。
 - 由 Render 从个人 GitHub 仓库的 Dockerfile 构建 API，并通过平台环境变量提供生产配置。
+- 健康检查通过，并能从 Render 日志识别构建、配置、数据库连接与启动阶段。
 - 验证健康检查、HTTPS Secure Cookie、注册登录、资源归属授权和 API 重启后的 Session 持久化。
 
 ## 困惑与阻塞
