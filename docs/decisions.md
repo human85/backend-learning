@@ -114,3 +114,11 @@
 - 决策：Mini SaaS API 使用 Node.js slim 多阶段 Dockerfile；pnpm 在构建阶段安装 workspace 依赖、编译并生成独立生产目录，最终 Runtime Image 只保留编译结果和生产依赖，并使用非 root 用户运行。
 - 原因：构建工具和源码不属于生产运行边界；分离阶段可以降低最终 Image 体积与攻击面，同时保持 pnpm lockfile 和 monorepo 构建可重复。
 - 影响：Docker build context 必须是仓库根目录；`.dockerignore` 不允许真实 `.env`、本机依赖或构建产物进入上下文；Image 必须经过真实构建和运行时依赖加载验证后才能提交。
+
+## D-016｜Compose 使用独立 migration Service 和 PostgreSQL Volume
+
+- 日期：2026-07-21
+- 状态：有效
+- 决策：本地 Compose 将 PostgreSQL、migration 和 API 分为三个 Service；migration 等待数据库 healthy 并成功退出后，API 才能启动。PostgreSQL 17 数据挂载到具名 Volume。
+- 原因：Container 启动不等于数据库 ready，API 实例也不应各自并发修改 schema；持久化数据的生命周期必须独立于 PostgreSQL Container。
+- 影响：API 和 migration 使用 `postgres:5432` 内部地址；Mac 通过 5433 访问容器数据库以避开本地 5432；`synchronize` 保持 false；本地 HTTP 覆盖为 development，生产环境必须使用 production、HTTPS 和外部密钥。

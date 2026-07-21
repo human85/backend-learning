@@ -20,7 +20,8 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 COPY apps/mini-saas apps/mini-saas
 
 RUN pnpm --filter @backend-learning/mini-saas build
-RUN pnpm --filter @backend-learning/mini-saas --prod deploy --legacy /prod/mini-saas
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm --filter @backend-learning/mini-saas --prod deploy --legacy /prod/mini-saas
 
 FROM node:22-bookworm-slim AS runtime
 

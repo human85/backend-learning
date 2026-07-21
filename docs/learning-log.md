@@ -231,3 +231,13 @@
 - 新增根级 `.dockerignore` 和 Mini SaaS 多阶段 Dockerfile：构建阶段使用 pnpm workspace 安装与编译，deploy 阶段裁剪生产包，Runtime 阶段以非 root 用户运行 `dist/main.js`。
 - 第一次拉取 Node 基础 Image 时一个 layer 经 Shadowrocket 代理暂时停滞；保持代理开启重试后成功，区分网络传输故障与 Dockerfile 代码故障。
 - `backend-learning/mini-saas:local` 构建成功；最终 Image 内 Argon2 哈希、NestJS 和 TypeORM 加载通过，没有 TypeScript 源码和测试目录，下一步使用 Compose 接入 PostgreSQL、Volume 和 migration。
+
+## 2026-07-21｜用 Compose 跑通 API、migration 与 PostgreSQL
+
+- 学习者正确判断 API Container 不能用 localhost 连接另一个 Container；进一步修正宿主机可通过 `5433:5432` 端口映射访问容器数据库，以及数据库未 ready 会导致 migration 连接失败而不是重复执行。
+- 新增 PostgreSQL、migrate 和 API 三个 Compose Service；PostgreSQL healthcheck 通过后才运行 migration，migration `Exited (0)` 后才启动 API。
+- PostgreSQL 17 官方 Image 使用 `POSTGRES_*` 初始化空 Volume；API 和 migration 使用 `postgres:5432` 内部服务名连接，Mac 已有的本地 5432 与容器映射 5433 不冲突。
+- Runtime migration 首次暴露 `dotenv/config` 只来自传递依赖的问题，将 dotenv 补为直接生产依赖；编译后的 DataSource 成功创建 migrations、projects、users 和 sessions 四张表并记录 4 条 migration。
+- production Image 的 Secure Cookie 在本地 HTTP 下不回传，`/auth/me` 正确返回 `401`；本地 Compose 显式覆盖 `NODE_ENV=development` 后认证恢复，生产部署仍必须使用 production 和 HTTPS。
+- 只重建 API Container 后原 Cookie 继续恢复 Session；只重建 PostgreSQL Container 后 migration、用户和 Session 继续存在，验证 PostgreSQL Volume 独立于两个 Container 的生命周期。
+- 实验完成后清空 users、projects 和 sessions，保留 4 条 migration；API 和 PostgreSQL 均保持 healthy，下一课进入容器日志故障诊断。

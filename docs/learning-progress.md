@@ -16,7 +16,7 @@
 - 状态：进行中
 - 30 天计划：第 1、2 周已完成，开始第 3 周
 - 当前焦点项目：`apps/mini-saas/` 与 `apps/mini-saas-web/`
-- 实践进度：API 的认证授权、浏览器认证闭环和启动配置校验已完成；Docker Desktop 已实际运行，第一个多阶段 API Image 构建并验证成功；下一步使用 Compose 连接 API 与 PostgreSQL
+- 实践进度：API 的认证授权、浏览器认证闭环和启动配置校验已完成；多阶段 API Image 与 Compose 三服务链路已实际运行，API 和 PostgreSQL 重建后数据与 Session 均恢复；下一步训练容器日志排错并准备部署
 
 ## 已接触的知识
 
@@ -65,17 +65,18 @@
 | TanStack Query 服务端状态            | 接触过 | `/auth/me` 使用 Query 管理加载、成功和失败；登录与注销 Mutation 直接更新当前用户缓存，刷新后重新向 Session 求证              |
 | 环境变量与启动校验                   | 理解中 | 已能判断缺失数据库或 Session 配置会启动失败、短密钥可运行但不安全、错误 CORS Origin 会导致生产联调失败；Joi 在启动前集中验证 |
 | Docker Image 与 Container            | 理解中 | 已能解释 Dockerfile、Image、Container 和 Volume 的区别；成功运行 hello-world 并构建 Mini SaaS 多阶段生产 Image               |
+| Docker Compose 与容器网络            | 理解中 | 已运行 postgres、migrate、api 三个 Service，验证服务名连接、宿主机端口映射、健康检查、migration 顺序和 Volume 持久化         |
 
 ## 当前学习任务
 
-使用 Compose 运行 Mini SaaS API 与 PostgreSQL，理解服务名网络、持久化卷、健康检查、migration 和启动顺序分别解决什么问题。
+使用 Docker 与 NestJS 日志定位一次故意制造的连接或配置错误，再把本地容器配置与生产部署要求对应起来。
 
 ## 下一步完成标准
 
-- 能解释 Dockerfile、image、container 与 Compose service 的关系。
-- API 和 PostgreSQL 能通过 Compose 启动，API 使用服务名而不是 localhost 连接数据库。
-- 数据库 schema 通过显式 migration 建立，不依赖 `synchronize: true`。
-- 重建 API 容器后数据库与 Session 数据仍保留，并能通过日志定位一次故意制造的配置或连接错误。
+- 能从 `docker compose ps` 判断 running、healthy、exited 和失败状态。
+- 能从 API、migration 和 PostgreSQL 日志定位故意制造的错误属于配置、网络、认证还是 schema。
+- 能解释本地 HTTP 为什么覆盖为 development，而生产 Cookie 为什么要求 HTTPS。
+- 修复错误后重新验证健康检查、migration、认证与数据持久化。
 
 ## 困惑与阻塞
 
