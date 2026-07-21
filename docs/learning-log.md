@@ -248,3 +248,11 @@
 - 学习者能根据 `postgres healthy`、`migrate Exited (1)`、`api` 未启动，确定先查看 migration，而不是从未运行的 API 开始排查；也能识别正常 migration 的 `Exited (0)` 不需要保持运行。
 - 建立连接故障分层：`ENOTFOUND` 表示服务名或 DNS，`ECONNREFUSED` 表示地址可解析但端口未接受连接，`28P01` 表示请求抵达 PostgreSQL 但认证失败，`42P01` 表示连接成功但 schema 缺表。
 - 学习者指出如果客户端记录认证失败但目标 PostgreSQL 没有同一次连接日志，应怀疑 API 实际连接了另一台数据库；下一课进入生产部署模型与上线验证。
+
+## 2026-07-21｜确定个人免费部署路线并修复生产代理 Cookie
+
+- 澄清公司后端仓库不是学习者本人设计的项目，只作为真实工程观察样本；Docker 是可选的本地基础设施和交付方式，仓库存在 Dockerfile 不影响开发者直接在 Mac 使用 `npm run start:dev`。
+- 根据个人项目必须免费的要求，选择 Render Free Web Service 运行 NestJS Docker Image、Neon Free PostgreSQL 保存数据；不使用 30 天后过期的 Render Free PostgreSQL，也不采用当前要求信用卡预授权的 Koyeb。
+- 学习者正确预测生产登录后 `/auth/me` 仍为 `401` 是 Cookie 没有正确携带；进一步定位到 HTTPS 在平台入口终止后，内部 HTTP 请求需要 NestJS 信任最近一层代理。
+- 新增生产代理 e2e，先复现登录响应存在 Session Cookie 但缺少 `Secure`，再在 production 配置中设置 `trust proxy = 1`；目标测试和完整 43 个单元测试、32 个 e2e、前端 10 个测试、lint、build、format 均通过。
+- 根 `pnpm test --runInBand` 曾把 Jest 专用参数传给 Vitest 并被拒绝，随后使用无额外参数的根 `pnpm test` 正确验证两个测试工具；下一步创建个人 Neon 数据库并执行 migration。

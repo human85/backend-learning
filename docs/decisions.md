@@ -122,3 +122,11 @@
 - 决策：本地 Compose 将 PostgreSQL、migration 和 API 分为三个 Service；migration 等待数据库 healthy 并成功退出后，API 才能启动。PostgreSQL 17 数据挂载到具名 Volume。
 - 原因：Container 启动不等于数据库 ready，API 实例也不应各自并发修改 schema；持久化数据的生命周期必须独立于 PostgreSQL Container。
 - 影响：API 和 migration 使用 `postgres:5432` 内部地址；Mac 通过 5433 访问容器数据库以避开本地 5432；`synchronize` 保持 false；本地 HTTP 覆盖为 development，生产环境必须使用 production、HTTPS 和外部密钥。
+
+## D-017｜首次个人部署使用免费 Render Web 与 Neon PostgreSQL
+
+- 日期：2026-07-21
+- 状态：有效
+- 决策：个人学习项目使用独立个人账号；Render Free Web Service 从 GitHub Dockerfile 构建并运行 API，Neon Free PostgreSQL 保存业务数据和 Session。公司仓库与公司平台只作为只读案例，不复用公司账号或资源。
+- 原因：第一轮需要真实完成 HTTPS、环境变量、migration、日志和持久化闭环，同时避免个人学习产生固定成本或意外费用。Render 自带 HTTPS 和 Docker 构建，Neon 免费数据库不会像 Render Free PostgreSQL 一样在 30 天后到期。
+- 影响：接受免费 Web Service 的休眠和冷启动，不把它当作正式生产 SLA；生产变量只保存在平台，仓库不提交真实密钥；迁移、健康检查、认证授权和数据持久化必须在线上实际验证。免费计划条款可能变化，创建资源前应再次核对官方价格与限制。

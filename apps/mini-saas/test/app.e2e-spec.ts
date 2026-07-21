@@ -12,10 +12,31 @@ import { AppModule } from './../src/app.module';
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
 
-  async function createTestApp(): Promise<INestApplication<App>> {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+  async function createTestApp(
+    configOverrides?: Record<string, string>,
+  ): Promise<INestApplication<App>> {
+    const testingModuleBuilder = Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    });
+
+    if (configOverrides) {
+      testingModuleBuilder.overrideProvider(ConfigService).useValue({
+        get<T>(key: string): T | undefined {
+          return configOverrides[key] as T | undefined;
+        },
+        getOrThrow<T>(key: string): T {
+          const value = configOverrides[key];
+
+          if (value === undefined) {
+            throw new Error(`Missing test configuration: ${key}`);
+          }
+
+          return value as T;
+        },
+      });
+    }
+
+    const moduleFixture: TestingModule = await testingModuleBuilder.compile();
 
     const testApp = moduleFixture.createNestApplication();
     configureApp(testApp);
@@ -197,6 +218,34 @@ describe('AppController (e2e)', () => {
       statusCode: 401,
     });
     expect(unknownEmailResponse.body).toEqual(wrongPasswordResponse.body);
+  });
+
+  it('/auth/login sets a secure cookie behind the production HTTPS proxy', async () => {
+    const configService = app.get(ConfigService);
+    const productionConfig = {
+      NODE_ENV: 'production',
+      DATABASE_URL: configService.getOrThrow<string>('DATABASE_URL'),
+      SESSION_SECRET: configService.getOrThrow<string>('SESSION_SECRET'),
+      FRONTEND_ORIGIN: configService.getOrThrow<string>('FRONTEND_ORIGIN'),
+    };
+    await app.close();
+    app = await createTestApp(productionConfig);
+    const password = 'correct horse battery staple';
+
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ email: 'user@example.com', password })
+      .expect(201);
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/login')
+      .set('X-Forwarded-Proto', 'https')
+      .send({ email: 'user@example.com', password })
+      .expect(200);
+    const setCookieHeaders = response.headers['set-cookie'] as unknown;
+
+    expect(Array.isArray(setCookieHeaders)).toBe(true);
+    expect((setCookieHeaders as string[])[0]).toContain('Secure');
   });
 
   it('/auth/me rejects a request without a session', () => {

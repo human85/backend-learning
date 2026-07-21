@@ -16,7 +16,7 @@
 - 状态：进行中
 - 30 天计划：第 1、2 周已完成，开始第 3 周
 - 当前焦点项目：`apps/mini-saas/` 与 `apps/mini-saas-web/`
-- 实践进度：API 的认证授权、浏览器认证闭环和启动配置校验已完成；多阶段 API Image 与 Compose 三服务链路已实际运行，API 和 PostgreSQL 重建后数据与 Session 均恢复；已完成一次错误密码故障实验并按网络、端口、认证和 schema 分层定位，下一步进入生产部署模型
+- 实践进度：API 的认证授权、浏览器认证闭环和启动配置校验已完成；多阶段 API Image 与 Compose 三服务链路已实际运行，API 和 PostgreSQL 重建后数据与 Session 均恢复；已完成数据库故障分层诊断，并用 e2e 修复生产 HTTPS 代理后的 Secure Cookie；下一步使用个人免费 Render Web Service 与 Neon PostgreSQL 完成首次部署
 
 ## 已接触的知识
 
@@ -67,17 +67,18 @@
 | Docker Image 与 Container            | 理解中 | 已能解释 Dockerfile、Image、Container 和 Volume 的区别；成功运行 hello-world 并构建 Mini SaaS 多阶段生产 Image               |
 | Docker Compose 与容器网络            | 理解中 | 已运行 postgres、migrate、api 三个 Service，验证服务名连接、宿主机端口映射、健康检查、migration 顺序和 Volume 持久化         |
 | 容器状态与日志诊断                   | 理解中 | 能区分 running、healthy、Exited (0) 与 Exited (1)，并根据 ENOTFOUND、ECONNREFUSED、28P01 和 42P01 判断故障所在层             |
+| HTTPS 代理与 Secure Cookie           | 接触过 | 已预测 Cookie 未正确携带会导致登录 `200` 后 `/auth/me` 仍为 `401`；e2e 验证生产环境需要信任前置 HTTPS 代理                   |
 
 ## 当前学习任务
 
-把本地 Compose 配置映射到生产部署，理解镜像交付、HTTPS 入口、生产环境变量、数据库持久化和 migration 的职责边界。
+使用个人免费服务完成首次线上部署：Render Free Web Service 运行 API Docker Image，Neon Free PostgreSQL 保存业务数据与 Session。
 
 ## 下一步完成标准
 
-- 能说明开发机、镜像仓库、部署平台与数据库在发布链路中的位置。
-- 能解释生产环境为什么运行已构建 Image，而不是在服务器现场运行 `pnpm dev`。
-- 能指出 `NODE_ENV=production`、HTTPS、Secure Cookie、CORS Origin 和 Session Secret 的对应关系。
-- 能制定并执行 migration、健康检查、认证授权和数据持久化的最小上线验收清单。
+- 创建独立于公司账号的免费 Neon PostgreSQL，并安全保存连接地址。
+- 对 Neon 数据库执行现有 migration，确认 4 条迁移和所需表结构。
+- 由 Render 从个人 GitHub 仓库的 Dockerfile 构建 API，并通过平台环境变量提供生产配置。
+- 验证健康检查、HTTPS Secure Cookie、注册登录、资源归属授权和 API 重启后的 Session 持久化。
 
 ## 困惑与阻塞
 
