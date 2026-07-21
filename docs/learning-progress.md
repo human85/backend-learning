@@ -16,7 +16,7 @@
 - 状态：进行中
 - 30 天计划：第 1、2、3 周已完成，开始第 4 周
 - 当前焦点项目：`apps/mini-saas/` 与 `apps/mini-saas-web/`
-- 实践进度：个人 Render Free API 已从 GitHub Dockerfile 成功构建并上线，公网健康检查、CORS、Secure Cookie、注册登录、当前用户、Projects CRUD 和注销均与 Neon 真实数据库验证通过；临时业务数据已清理，下一步部署免费前端并完成真实浏览器闭环
+- 实践进度：个人 Render Free API 已从 GitHub Dockerfile 成功构建并上线，公网健康检查、CORS、Secure Cookie、注册登录、当前用户、Projects CRUD 和注销均与 Neon 真实数据库验证通过；前端已改为构建时读取 API 基地址，并决定用静态站点 `/api` Rewrite 保持同源和 SameSite=Lax，下一步创建静态站点并验证浏览器闭环
 
 ## 已接触的知识
 
@@ -70,6 +70,7 @@
 | HTTPS 代理与 Secure Cookie           | 接触过 | 已预测 Cookie 未正确携带会导致登录 `200` 后 `/auth/me` 仍为 `401`；e2e 验证生产环境需要信任前置 HTTPS 代理                   |
 | 托管 PostgreSQL 与线上 migration     | 接触过 | 已通过被忽略的本地连接配置，让生产 Docker Image 对 Neon 执行 4 条 migration，并查询确认表结构和迁移记录                      |
 | Render Docker 部署与线上验收         | 接触过 | 已从个人 GitHub 构建 Docker Image；公网验证健康、CORS、认证、Secure Cookie、资源 CRUD、注销和 Neon 数据清理                  |
+| 同源代理与跨站 Cookie                | 接触过 | 确认 onrender.com 是公共后缀；选择静态站点 `/api` Rewrite 到 API，避免 SameSite=None、第三方 Cookie 和额外 CSRF 暴露         |
 
 ## 当前学习任务
 

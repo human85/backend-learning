@@ -272,3 +272,11 @@
 - 用临时账号完成线上 CORS 预检、注册 `201`、登录 `200`、Secure/HttpOnly/SameSite Cookie、`/auth/me`、项目创建与列表、删除、注销，以及注销后原 Cookie 返回 `401`，证明 Render API、Neon 数据库和服务端 Session 链路真实可用。
 - 首次清理脚本因 shell 破坏 SQL 参数占位符而事务回滚；随后使用单引号保护 Node 脚本中的 `$1`，精确删除临时用户并确认 users、projects、sessions 均为 0。该故障属于运维脚本转义，不属于 API 或数据库错误。
 - Render Free 实例空闲后会休眠并产生约 50 秒以上冷启动，作为个人学习环境接受这一限制；下一步部署静态前端，并用真实浏览器验证不同免费子域之间的 CORS、SameSite Cookie 和刷新恢复。
+
+## 2026-07-21｜为线上前端选择同源 API Rewrite
+
+- 检查发现 React 客户端仍硬编码 `http://localhost:3000`；改为构建时读取 `VITE_API_BASE_URL`，本地缺省值继续指向 localhost，避免增加新的本地环境文件。
+- 官方 Public Suffix List 明确包含 `onrender.com`，因此前端与 API 的两个免费子域会被浏览器视为跨站；仅设置 `credentials: include` 不能让 SameSite=Lax Cookie 随跨站 fetch 发送。
+- 一度实现 production `SameSite=None; Secure` 并通过目标 e2e，但在提交前审查到第三方 Cookie 兼容性和 CSRF 边界；确认 Render Static Site 支持 Rewrite 到完整公网 URL 后撤回该方案。
+- 最终取舍是前端构建使用 `VITE_API_BASE_URL=/api`，静态站点将 `/api/*` Rewrite 到 API 的 `/*`；浏览器只访问前端 Origin，Session Cookie 继续使用 SameSite=Lax。
+- 43 个后端单元测试、32 个 e2e、10 个前端测试、前后端 build、lint 和 format 全部通过；生产前端 bundle 不含 localhost API，下一步创建 Render Static Site 并配置 Rewrite。

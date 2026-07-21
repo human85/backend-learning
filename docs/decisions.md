@@ -130,3 +130,11 @@
 - 决策：个人学习项目使用独立个人账号；Render Free Web Service 从 GitHub Dockerfile 构建并运行 API，Neon Free PostgreSQL 保存业务数据和 Session。公司仓库与公司平台只作为只读案例，不复用公司账号或资源。
 - 原因：第一轮需要真实完成 HTTPS、环境变量、migration、日志和持久化闭环，同时避免个人学习产生固定成本或意外费用。Render 自带 HTTPS 和 Docker 构建，Neon 免费数据库不会像 Render Free PostgreSQL 一样在 30 天后到期。
 - 影响：接受免费 Web Service 的休眠和冷启动，不把它当作正式生产 SLA；生产变量只保存在平台，仓库不提交真实密钥；迁移、健康检查、认证授权和数据持久化必须在线上实际验证。免费计划条款可能变化，创建资源前应再次核对官方价格与限制。
+
+## D-018｜免费 Render 子域通过静态站点 Rewrite 保持同源 Session
+
+- 日期：2026-07-21
+- 状态：有效
+- 决策：React 静态站点使用相对基地址 `/api`，Render Static Site 将 `/api/*` Rewrite 到 API Service 的 `/*`；生产 Session Cookie 继续使用 `SameSite=Lax; Secure`，不为两个 onrender.com 子域改成 SameSite=None。
+- 原因：onrender.com 位于 Public Suffix List，两个免费子域是不同 Site；跨站 Cookie 既依赖第三方 Cookie 策略，也扩大 CSRF 边界。平台 Rewrite 能让浏览器始终访问前端 Origin，同时保留独立 API Service。
+- 影响：静态站点必须保存 API Rewrite 规则，且 API 的 FRONTEND_ORIGIN 必须匹配静态站点 URL；前端构建通过 `VITE_API_BASE_URL=/api` 注入非秘密配置。本地开发缺省仍访问 `http://localhost:3000`，继续使用 CORS 和 SameSite=Lax。

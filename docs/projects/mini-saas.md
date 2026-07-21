@@ -83,6 +83,7 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 增加生产 HTTPS 代理 e2e：先复现登录响应缺少 `Secure` Cookie，再让生产应用只信任最近一层反向代理；带 `X-Forwarded-Proto: https` 的登录响应现已正确设置 Secure Session Cookie，完整 43 个单元测试、32 个 e2e、前端 10 个测试、lint 和 build 通过。
 - 创建个人 Neon Free PostgreSQL，连接地址只保存在 Git 忽略的 `.env.production.local`；使用生产 Docker Image 查询到 4 条待执行 migration，成功在线创建 migrations、projects、sessions、users，并再次确认 4 条 migration 全部完成。
 - Render Free Web Service 从个人 GitHub `main` 的 Dockerfile 成功构建并上线；公网验证 `/health`、根路由、CORS 预检、注册登录、生产 Secure Cookie、`/auth/me`、项目创建/列表/删除、注销后 `401` 全部符合合同，临时用户、项目和 Session 已从 Neon 精确清理。
+- 前端 API 基地址从硬编码 localhost 改为构建时 `VITE_API_BASE_URL`，本地未配置仍使用 localhost；确认 onrender.com 属于 Public Suffix 后，不采用跨站 `SameSite=None`，计划让静态站点将 `/api/*` Rewrite 到 Render API，浏览器保持同源且 Cookie 继续使用 Lax。
 
 ## 下一项应用课程
 
