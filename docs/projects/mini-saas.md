@@ -79,13 +79,14 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 修复 `data-source.ts` 直接使用但未声明 `dotenv` 的生产依赖问题；编译后的 TypeORM DataSource 在 Runtime Image 中成功执行全部 4 条 migration。
 - 发现 production 的 Secure Cookie 无法通过本地 HTTP 回传，本地 Compose 显式覆盖为 development；生产 Image 默认仍为 production，后续部署必须提供 HTTPS。
 - 重建 API Container 后原 Cookie 恢复 Session；重建 PostgreSQL Container 后 4 条 migration、用户和 Session 继续存在，证明状态由 Volume 和数据库承载。实验业务数据随后清理，schema 与 migration 记录保留。
+- 使用错误数据库密码运行一次性 migration，观察客户端退出码 `1` 和 PostgreSQL `28P01` 认证日志；学习者能按 DNS、端口、认证和 schema 分层判断 ENOTFOUND、ECONNREFUSED、密码失败与表不存在，并正确识别 migration 的 `Exited (0)` 是正常完成。
 
 ## 下一项应用课程
 
-进入 Docker 与本地部署：
+进入生产部署：
 
-1. 故意制造数据库连接或环境配置错误，使用 `docker compose ps` 和 logs 定位根因并修复。
-2. 区分本地 HTTP 配置与生产 HTTPS、Secure Cookie 和密钥来源。
+1. 将本地 Docker Image、Compose Service 与真实部署平台的服务对应起来。
+2. 区分本地 HTTP 配置与生产 HTTPS、Secure Cookie、CORS Origin 和密钥来源。
 3. 准备部署环境并完成线上 migration、健康检查与认证授权验证。
 
 完成标准仍以 `docs/learning-progress.md` 的当前快照为准。

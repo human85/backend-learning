@@ -241,3 +241,10 @@
 - production Image 的 Secure Cookie 在本地 HTTP 下不回传，`/auth/me` 正确返回 `401`；本地 Compose 显式覆盖 `NODE_ENV=development` 后认证恢复，生产部署仍必须使用 production 和 HTTPS。
 - 只重建 API Container 后原 Cookie 继续恢复 Session；只重建 PostgreSQL Container 后 migration、用户和 Session 继续存在，验证 PostgreSQL Volume 独立于两个 Container 的生命周期。
 - 实验完成后清空 users、projects 和 sessions，保留 4 条 migration；API 和 PostgreSQL 均保持 healthy，下一课进入容器日志故障诊断。
+
+## 2026-07-21｜使用容器日志分层定位数据库故障
+
+- 使用错误密码启动一次性 migration Container，真实观察到客户端退出码 `1`、PostgreSQL `FATAL` 和错误码 `28P01`；临时 Container 使用 `--rm` 删除后，数据库一侧仍保留对应认证失败日志。
+- 学习者能根据 `postgres healthy`、`migrate Exited (1)`、`api` 未启动，确定先查看 migration，而不是从未运行的 API 开始排查；也能识别正常 migration 的 `Exited (0)` 不需要保持运行。
+- 建立连接故障分层：`ENOTFOUND` 表示服务名或 DNS，`ECONNREFUSED` 表示地址可解析但端口未接受连接，`28P01` 表示请求抵达 PostgreSQL 但认证失败，`42P01` 表示连接成功但 schema 缺表。
+- 学习者指出如果客户端记录认证失败但目标 PostgreSQL 没有同一次连接日志，应怀疑 API 实际连接了另一台数据库；下一课进入生产部署模型与上线验证。

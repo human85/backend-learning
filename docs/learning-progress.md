@@ -16,7 +16,7 @@
 - 状态：进行中
 - 30 天计划：第 1、2 周已完成，开始第 3 周
 - 当前焦点项目：`apps/mini-saas/` 与 `apps/mini-saas-web/`
-- 实践进度：API 的认证授权、浏览器认证闭环和启动配置校验已完成；多阶段 API Image 与 Compose 三服务链路已实际运行，API 和 PostgreSQL 重建后数据与 Session 均恢复；下一步训练容器日志排错并准备部署
+- 实践进度：API 的认证授权、浏览器认证闭环和启动配置校验已完成；多阶段 API Image 与 Compose 三服务链路已实际运行，API 和 PostgreSQL 重建后数据与 Session 均恢复；已完成一次错误密码故障实验并按网络、端口、认证和 schema 分层定位，下一步进入生产部署模型
 
 ## 已接触的知识
 
@@ -66,17 +66,18 @@
 | 环境变量与启动校验                   | 理解中 | 已能判断缺失数据库或 Session 配置会启动失败、短密钥可运行但不安全、错误 CORS Origin 会导致生产联调失败；Joi 在启动前集中验证 |
 | Docker Image 与 Container            | 理解中 | 已能解释 Dockerfile、Image、Container 和 Volume 的区别；成功运行 hello-world 并构建 Mini SaaS 多阶段生产 Image               |
 | Docker Compose 与容器网络            | 理解中 | 已运行 postgres、migrate、api 三个 Service，验证服务名连接、宿主机端口映射、健康检查、migration 顺序和 Volume 持久化         |
+| 容器状态与日志诊断                   | 理解中 | 能区分 running、healthy、Exited (0) 与 Exited (1)，并根据 ENOTFOUND、ECONNREFUSED、28P01 和 42P01 判断故障所在层             |
 
 ## 当前学习任务
 
-使用 Docker 与 NestJS 日志定位一次故意制造的连接或配置错误，再把本地容器配置与生产部署要求对应起来。
+把本地 Compose 配置映射到生产部署，理解镜像交付、HTTPS 入口、生产环境变量、数据库持久化和 migration 的职责边界。
 
 ## 下一步完成标准
 
-- 能从 `docker compose ps` 判断 running、healthy、exited 和失败状态。
-- 能从 API、migration 和 PostgreSQL 日志定位故意制造的错误属于配置、网络、认证还是 schema。
-- 能解释本地 HTTP 为什么覆盖为 development，而生产 Cookie 为什么要求 HTTPS。
-- 修复错误后重新验证健康检查、migration、认证与数据持久化。
+- 能说明开发机、镜像仓库、部署平台与数据库在发布链路中的位置。
+- 能解释生产环境为什么运行已构建 Image，而不是在服务器现场运行 `pnpm dev`。
+- 能指出 `NODE_ENV=production`、HTTPS、Secure Cookie、CORS Origin 和 Session Secret 的对应关系。
+- 能制定并执行 migration、健康检查、认证授权和数据持久化的最小上线验收清单。
 
 ## 困惑与阻塞
 
