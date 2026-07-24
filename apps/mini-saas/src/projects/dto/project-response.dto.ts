@@ -1,14 +1,16 @@
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { PROJECT_NAME_MAX_LENGTH } from '../project.constants';
 
-export class CreateProjectDto {
+export class ProjectResponseDto {
+  @ApiProperty({ example: 1 })
+  id!: number;
+
   @ApiProperty({
     example: 'Launch website',
     maxLength: PROJECT_NAME_MAX_LENGTH,
   })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(PROJECT_NAME_MAX_LENGTH)
   name!: string;
+
+  @ApiProperty({ example: 1 })
+  ownerId!: number;
 }

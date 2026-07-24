@@ -7,7 +7,7 @@ import { QueryFailedError } from 'typeorm';
 import { UserEntity } from '../users/user.entity';
 import { UsersService } from '../users/users.service';
 import { PasswordService } from './password.service';
-import { PublicUser } from './public-user.type';
+import { PublicUserDto } from './dto/public-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -16,7 +16,7 @@ export class AuthService {
     private readonly passwordService: PasswordService,
   ) {}
 
-  async register(email: string, password: string): Promise<PublicUser> {
+  async register(email: string, password: string): Promise<PublicUserDto> {
     const normalizedEmail = this.normalizeEmail(email);
     const existingUser = await this.usersService.findByEmail(normalizedEmail);
 
@@ -42,7 +42,7 @@ export class AuthService {
     }
   }
 
-  async login(email: string, password: string): Promise<PublicUser> {
+  async login(email: string, password: string): Promise<PublicUserDto> {
     const normalizedEmail = this.normalizeEmail(email);
     const user =
       await this.usersService.findCredentialsByEmail(normalizedEmail);
@@ -63,7 +63,7 @@ export class AuthService {
     return this.toPublicUser(user);
   }
 
-  async getCurrentUser(userId: number): Promise<PublicUser> {
+  async getCurrentUser(userId: number): Promise<PublicUserDto> {
     const user = await this.usersService.findById(userId);
 
     if (!user) {
@@ -77,7 +77,7 @@ export class AuthService {
     return email.trim().toLowerCase();
   }
 
-  private toPublicUser(user: UserEntity): PublicUser {
+  private toPublicUser(user: UserEntity): PublicUserDto {
     return {
       id: user.id,
       email: user.email,

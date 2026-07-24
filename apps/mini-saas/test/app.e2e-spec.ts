@@ -8,6 +8,8 @@ import { verify } from 'argon2';
 import { UserEntity } from './../src/users/user.entity';
 import { configureApp } from './../src/app.config';
 import { AppModule } from './../src/app.module';
+import { configureOpenApi, OPENAPI_JSON_PATH } from './../src/openapi.config';
+import { SESSION_COOKIE_NAME } from './../src/session/session.constants';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -40,6 +42,7 @@ describe('AppController (e2e)', () => {
 
     const testApp = moduleFixture.createNestApplication();
     configureApp(testApp);
+    configureOpenApi(testApp);
     await testApp.init();
 
     return testApp;
@@ -87,6 +90,36 @@ describe('AppController (e2e)', () => {
       .expect(204)
       .expect('Access-Control-Allow-Origin', frontendOrigin)
       .expect('Access-Control-Allow-Credentials', 'true');
+  });
+
+  it('publishes an OpenAPI contract without sensitive user fields', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/${OPENAPI_JSON_PATH}`)
+      .expect(200);
+    const document = response.body as {
+      components: {
+        schemas: Record<string, { properties: Record<string, unknown> }>;
+        securitySchemes: Record<string, unknown>;
+      };
+      paths: Record<
+        string,
+        Record<string, { security?: Array<Record<string, unknown>> }>
+      >;
+    };
+    const publicUserProperties =
+      document.components.schemas.PublicUserDto.properties;
+
+    expect(publicUserProperties).toHaveProperty('id');
+    expect(publicUserProperties).toHaveProperty('email');
+    expect(publicUserProperties).toHaveProperty('createdAt');
+    expect(publicUserProperties).not.toHaveProperty('password');
+    expect(publicUserProperties).not.toHaveProperty('passwordHash');
+    expect(document.components.securitySchemes).toHaveProperty(
+      SESSION_COOKIE_NAME,
+    );
+    expect(document.paths['/projects'].get.security).toEqual([
+      { [SESSION_COOKIE_NAME]: [] },
+    ]);
   });
 
   it('/auth/register creates a user without exposing credentials', async () => {

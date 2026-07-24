@@ -8,8 +8,8 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 
 - 路径：API 位于 `apps/mini-saas/`，浏览器客户端位于 `apps/mini-saas-web/`
 - 技术栈：Node.js、TypeScript、NestJS 11、TypeORM、PostgreSQL 17、React 19、Vite 8、TanStack Query、Tailwind CSS、shadcn/ui、Jest、Vitest
-- 阶段：NestJS、PostgreSQL、认证授权基础完成，进入前后端联调
-- 30 天里程碑：第 2 周已完成，开始第 3 周
+- 阶段：NestJS、PostgreSQL、认证授权、Docker 和首次部署完成，进入闭环验收
+- 30 天里程碑：第 1 至第 3 周已完成，第 4 周进行中
 - 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；认证支持注册、登录、当前用户和注销；已登录用户只能 CRUD 自己的项目
 - 数据库与认证：注册和登录使用 Argon2id；PostgreSQL 保存服务端 Session；Project.ownerId 非空外键指向 User，所有查询按当前用户隔离
 
@@ -84,13 +84,16 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 创建个人 Neon Free PostgreSQL，连接地址只保存在 Git 忽略的 `.env.production.local`；使用生产 Docker Image 查询到 4 条待执行 migration，成功在线创建 migrations、projects、sessions、users，并再次确认 4 条 migration 全部完成。
 - Render Free Web Service 从个人 GitHub `main` 的 Dockerfile 成功构建并上线；公网验证 `/health`、根路由、CORS 预检、注册登录、生产 Secure Cookie、`/auth/me`、项目创建/列表/删除、注销后 `401` 全部符合合同，临时用户、项目和 Session 已从 Neon 精确清理。
 - 前端 API 基地址从硬编码 localhost 改为构建时 `VITE_API_BASE_URL`，本地未配置仍使用 localhost；确认 onrender.com 属于 Public Suffix 后，不采用跨站 `SameSite=None`，计划让静态站点将 `/api/*` Rewrite 到 Render API，浏览器保持同源且 Cookie 继续使用 Lax。
+- React 静态站点已部署到 Render，并按官方 shadcn 登录 Block 重组认证页；页面通过相对 `/api` 地址访问后端，完整线上 Session 行为仍需在闭环验收中记录。
+- 接入 `@nestjs/swagger`，提供 `/docs` 与 `/openapi.json`；Auth 和 Projects 描述请求、响应、关键状态码及 Cookie Session，PublicUserDto 和 ProjectResponseDto 将公开合同与数据库 Entity 分离。
+- 新增 OpenAPI e2e，验证公开用户 schema 不含密码字段、Cookie 安全方案存在且 Projects 正确引用；测试首次发现安全方案名称不一致并修复。43 个单元测试、33 个 e2e、构建和 lint 通过。
 
 ## 下一项应用课程
 
-进入生产部署：
+完成生产闭环验收：
 
-1. 将 React 客户端部署为免费静态站点，并注入 Render API URL。
-2. 用真实浏览器验证 HTTPS、CORS、Cookie 与 Session；根据网络证据处理独立子域之间的 SameSite 边界。
-3. 重新部署 API 后用原 Cookie 验证 Neon Session 持久化，完成部署清单。
+1. 部署本次 OpenAPI 变更，在线检查 `/docs` 与 `/openapi.json`。
+2. 用真实浏览器验证注册、登录、刷新、注销和重新部署后的 Neon Session 恢复。
+3. 完成代码、安全、数据、环境、日志与回滚清单，再决定进入 Hono 对照项目或第二轮深化。
 
 完成标准仍以 `docs/learning-progress.md` 的当前快照为准。

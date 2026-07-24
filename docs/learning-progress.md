@@ -4,7 +4,7 @@
 
 ## 基本信息
 
-- 最近更新：2026-07-21
+- 最近更新：2026-07-24
 - 学习者背景：Web 前端工程师
 - 学习目标：通过真实 Mini SaaS 项目系统学习后端，逐步具备全栈开发能力
 - 第一轮目标：在 2026-08-18 前借助 AI 跑通一个可部署的前端 → API → 认证授权 → PostgreSQL → 测试 → Docker → 部署闭环
@@ -16,7 +16,7 @@
 - 状态：进行中
 - 30 天计划：第 1、2、3 周已完成，开始第 4 周
 - 当前焦点项目：`apps/mini-saas/` 与 `apps/mini-saas-web/`
-- 实践进度：个人 Render Free API 已从 GitHub Dockerfile 成功构建并上线，公网健康检查、CORS、Secure Cookie、注册登录、当前用户、Projects CRUD 和注销均与 Neon 真实数据库验证通过；前端已改为构建时读取 API 基地址，并决定用静态站点 `/api` Rewrite 保持同源和 SameSite=Lax，下一步创建静态站点并验证浏览器闭环
+- 实践进度：个人 Render Free API 与 Neon 已通过公网完整 API 验收，React 静态站点也已部署并通过 `/api` Rewrite 连接 API；当前新增 OpenAPI 契约与公开响应 DTO，下一步随部署验证 `/docs`、`/openapi.json` 和真实浏览器 Session，再完成第一轮生产清单审查
 
 ## 已接触的知识
 
@@ -71,17 +71,18 @@
 | 托管 PostgreSQL 与线上 migration     | 接触过 | 已通过被忽略的本地连接配置，让生产 Docker Image 对 Neon 执行 4 条 migration，并查询确认表结构和迁移记录                      |
 | Render Docker 部署与线上验收         | 接触过 | 已从个人 GitHub 构建 Docker Image；公网验证健康、CORS、认证、Secure Cookie、资源 CRUD、注销和 Neon 数据清理                  |
 | 同源代理与跨站 Cookie                | 接触过 | 确认 onrender.com 是公共后缀；选择静态站点 `/api` Rewrite 到 API，避免 SameSite=None、第三方 Cookie 和额外 CSRF 暴露         |
+| OpenAPI 与公开响应 DTO               | 理解中 | 已区分 Swagger 描述元数据和 Guard、Pipe 的运行时行为；用 PublicUserDto 隔离 UserEntity，并以 e2e 防止密码字段进入契约        |
 
 ## 当前学习任务
 
-部署免费前端并连接 Render API，在真实浏览器中验证 HTTPS、CORS、跨站 Cookie、Session 和页面刷新恢复身份。
+验证并发布 OpenAPI 契约，随后完成线上浏览器 Session 验收和第一轮生产检查清单。
 
 ## 下一步完成标准
 
-- 前端构建时读取线上 API 地址，并部署为免费静态站点。
-- API 的 `FRONTEND_ORIGIN` 与真实前端 URL 完全一致，浏览器预检通过。
-- 真实浏览器完成注册、登录、刷新恢复和注销；若跨站 Cookie 被 SameSite 阻止，先用网络证据复现再修复。
+- `/docs` 与 `/openapi.json` 随 API 部署可访问，认证和 Projects 契约与真实行为一致且不暴露敏感字段。
+- 真实线上浏览器完成注册、登录、刷新恢复和注销，确认静态站点 Rewrite 后 Cookie 保持同源。
 - 重新部署或重启 API 后，原 Session 仍能从 Neon 恢复。
+- 对代码、安全、数据、migration、环境变量、日志和回滚入口完成第一轮清单审查。
 
 ## 困惑与阻塞
 

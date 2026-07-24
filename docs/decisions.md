@@ -138,3 +138,11 @@
 - 决策：React 静态站点使用相对基地址 `/api`，Render Static Site 将 `/api/*` Rewrite 到 API Service 的 `/*`；生产 Session Cookie 继续使用 `SameSite=Lax; Secure`，不为两个 onrender.com 子域改成 SameSite=None。
 - 原因：onrender.com 位于 Public Suffix List，两个免费子域是不同 Site；跨站 Cookie 既依赖第三方 Cookie 策略，也扩大 CSRF 边界。平台 Rewrite 能让浏览器始终访问前端 Origin，同时保留独立 API Service。
 - 影响：静态站点必须保存 API Rewrite 规则，且 API 的 FRONTEND_ORIGIN 必须匹配静态站点 URL；前端构建通过 `VITE_API_BASE_URL=/api` 注入非秘密配置。本地开发缺省仍访问 `http://localhost:3000`，继续使用 CORS 和 SameSite=Lax。
+
+## D-019｜公开 API 使用独立 Response DTO 和可测试 OpenAPI
+
+- 日期：2026-07-24
+- 状态：有效
+- 决策：数据库 Entity 不直接作为公开用户合同；Auth 和 Projects 使用显式 Response DTO，并通过 `@nestjs/swagger` 生成 OpenAPI。关键敏感字段和认证方案进入契约 e2e。
+- 原因：TypeORM 的 `select: false` 不是序列化安全保证，Entity 字段也会随持久化需求变化；显式 DTO 能固定客户端边界，OpenAPI 则为前端、测试和 AI 提供机器可读合同。
+- 影响：新增或修改公开接口时同步更新 DTO、Swagger 元数据和相关契约测试；OpenAPI 描述不能代替 ValidationPipe、Guard、Service 测试或真实业务 e2e。

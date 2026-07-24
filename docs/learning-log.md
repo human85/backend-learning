@@ -280,3 +280,11 @@
 - 一度实现 production `SameSite=None; Secure` 并通过目标 e2e，但在提交前审查到第三方 Cookie 兼容性和 CSRF 边界；确认 Render Static Site 支持 Rewrite 到完整公网 URL 后撤回该方案。
 - 最终取舍是前端构建使用 `VITE_API_BASE_URL=/api`，静态站点将 `/api/*` Rewrite 到 API 的 `/*`；浏览器只访问前端 Origin，Session Cookie 继续使用 SameSite=Lax。
 - 43 个后端单元测试、32 个 e2e、10 个前端测试、前后端 build、lint 和 format 全部通过；生产前端 bundle 不含 localhost API，下一步创建 Render Static Site 并配置 Rewrite。
+
+## 2026-07-24｜用 OpenAPI 建立可测试的 API 契约
+
+- 学习者正确区分 Swagger 元数据与真实 Guard、Pipe 行为：缺少认证标注不会关闭 SessionAuthGuard，错误字段描述也不会改变 ValidationPipe 的 `400`；进一步澄清 Entity 新增字段不会自动进入显式 Response DTO。
+- 接入 `@nestjs/swagger`，提供 `/docs` 和 `/openapi.json`；Auth 与 Projects 记录输入 schema、公开响应、关键状态码和 Cookie Session 安全方案。
+- 将原 PublicUser type 升级为运行时可反射的 PublicUserDto，并新增 ProjectResponseDto；数据库 Entity 继续表达持久化结构，公开 DTO 只允许客户端可见字段，避免把 `select: false` 错当成序列化安全边界。
+- 新增契约 e2e，确保公开用户 schema 不含 `password` 或 `passwordHash`，并校验 Projects 引用正确的 Cookie 安全方案；测试先发现方案注册名与引用名不一致，修正后通过。
+- 43 个单元测试、33 个 e2e、构建和 lint 通过；下一步部署文档并进行线上生产清单验收。
