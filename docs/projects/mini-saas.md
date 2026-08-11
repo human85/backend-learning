@@ -87,13 +87,15 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - React 静态站点已部署到 Render，并按官方 shadcn 登录 Block 重组认证页；页面通过相对 `/api` 地址访问后端，完整线上 Session 行为仍需在闭环验收中记录。
 - 接入 `@nestjs/swagger`，提供 `/docs` 与 `/openapi.json`；Auth 和 Projects 描述请求、响应、关键状态码及 Cookie Session，PublicUserDto 和 ProjectResponseDto 将公开合同与数据库 Entity 分离。
 - 新增 OpenAPI e2e，验证公开用户 schema 不含密码字段、Cookie 安全方案存在且 Projects 正确引用；测试首次发现安全方案名称不一致并修复。43 个单元测试、33 个 e2e、构建和 lint 通过。
+- 线上 `/docs`、`/openapi.json` 与 `/health` 均返回 `200`；OpenAPI 包含 8 条路径、6 个 schema 和正确的 `mini_saas_session` Cookie 安全方案。
+- 真实浏览器通过静态站点完成 `401 → 注册 201 → 登录 200 → 刷新恢复 200 → 注销 204 → 401`，证明 Rewrite、Secure Cookie、Render API 与 Neon Session 协作正常；临时账号随后从 Neon 精确删除并验证不存在。
 
 ## 下一项应用课程
 
 完成生产闭环验收：
 
-1. 部署本次 OpenAPI 变更，在线检查 `/docs` 与 `/openapi.json`。
-2. 用真实浏览器验证注册、登录、刷新、注销和重新部署后的 Neon Session 恢复。
-3. 完成代码、安全、数据、环境、日志与回滚清单，再决定进入 Hono 对照项目或第二轮深化。
+1. 完成代码、安全、数据、环境、日志与恢复入口的第一轮生产检查清单。
+2. 总结当前系统边界、已验证证据与尚未覆盖的生产能力。
+3. 根据第一轮结果决定进入 Hono + Drizzle 对照项目，或先补一个关键可靠性缺口。
 
 完成标准仍以 `docs/learning-progress.md` 的当前快照为准。

@@ -4,7 +4,7 @@
 
 ## 基本信息
 
-- 最近更新：2026-07-24
+- 最近更新：2026-08-11
 - 学习者背景：Web 前端工程师
 - 学习目标：通过真实 Mini SaaS 项目系统学习后端，逐步具备全栈开发能力
 - 第一轮目标：在 2026-08-18 前借助 AI 跑通一个可部署的前端 → API → 认证授权 → PostgreSQL → 测试 → Docker → 部署闭环
@@ -16,7 +16,7 @@
 - 状态：进行中
 - 30 天计划：第 1、2、3 周已完成，开始第 4 周
 - 当前焦点项目：`apps/mini-saas/` 与 `apps/mini-saas-web/`
-- 实践进度：个人 Render Free API 与 Neon 已通过公网完整 API 验收，React 静态站点也已部署并通过 `/api` Rewrite 连接 API；当前新增 OpenAPI 契约与公开响应 DTO，下一步随部署验证 `/docs`、`/openapi.json` 和真实浏览器 Session，再完成第一轮生产清单审查
+- 实践进度：Render API、Neon、React 静态站点、同源 `/api` Rewrite 和 OpenAPI 已上线；真实浏览器完成未登录 `401`、注册 `201`、登录 `200`、刷新恢复 `200`、注销 `204` 和再次未登录 `401`，测试数据已精确清理；第一轮只剩最终生产检查清单
 
 ## 已接触的知识
 
@@ -69,20 +69,19 @@
 | 容器状态与日志诊断                   | 理解中 | 能区分 running、healthy、Exited (0) 与 Exited (1)，并根据 ENOTFOUND、ECONNREFUSED、28P01 和 42P01 判断故障所在层             |
 | HTTPS 代理与 Secure Cookie           | 接触过 | 已预测 Cookie 未正确携带会导致登录 `200` 后 `/auth/me` 仍为 `401`；e2e 验证生产环境需要信任前置 HTTPS 代理                   |
 | 托管 PostgreSQL 与线上 migration     | 接触过 | 已通过被忽略的本地连接配置，让生产 Docker Image 对 Neon 执行 4 条 migration，并查询确认表结构和迁移记录                      |
-| Render Docker 部署与线上验收         | 接触过 | 已从个人 GitHub 构建 Docker Image；公网验证健康、CORS、认证、Secure Cookie、资源 CRUD、注销和 Neon 数据清理                  |
+| Render Docker 部署与线上验收         | 理解中 | 已从个人 GitHub 构建 Docker Image并完成公网闭环；能按代码部署、数据库 schema 和静态 Rewrite 分层判断生产故障                 |
 | 同源代理与跨站 Cookie                | 接触过 | 确认 onrender.com 是公共后缀；选择静态站点 `/api` Rewrite 到 API，避免 SameSite=None、第三方 Cookie 和额外 CSRF 暴露         |
 | OpenAPI 与公开响应 DTO               | 理解中 | 已区分 Swagger 描述元数据和 Guard、Pipe 的运行时行为；用 PublicUserDto 隔离 UserEntity，并以 e2e 防止密码字段进入契约        |
 
 ## 当前学习任务
 
-验证并发布 OpenAPI 契约，随后完成线上浏览器 Session 验收和第一轮生产检查清单。
+完成代码、安全、数据、部署、日志和恢复入口的第一轮生产检查清单。
 
 ## 下一步完成标准
 
-- `/docs` 与 `/openapi.json` 随 API 部署可访问，认证和 Projects 契约与真实行为一致且不暴露敏感字段。
-- 真实线上浏览器完成注册、登录、刷新恢复和注销，确认静态站点 Rewrite 后 Cookie 保持同源。
-- 重新部署或重启 API 后，原 Session 仍能从 Neon 恢复。
 - 对代码、安全、数据、migration、环境变量、日志和回滚入口完成第一轮清单审查。
+- 能根据故障现象先定位到源码与构建、运行配置、数据库、HTTP 边缘或浏览器层，再选择证据和修复动作。
+- 明确当前免费部署的限制、可恢复路径和仍未覆盖的生产能力，完成第一轮闭环总结。
 
 ## 困惑与阻塞
 

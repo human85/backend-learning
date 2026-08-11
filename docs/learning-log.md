@@ -288,3 +288,11 @@
 - 将原 PublicUser type 升级为运行时可反射的 PublicUserDto，并新增 ProjectResponseDto；数据库 Entity 继续表达持久化结构，公开 DTO 只允许客户端可见字段，避免把 `select: false` 错当成序列化安全边界。
 - 新增契约 e2e，确保公开用户 schema 不含 `password` 或 `passwordHash`，并校验 Projects 引用正确的 Cookie 安全方案；测试先发现方案注册名与引用名不一致，修正后通过。
 - 43 个单元测试、33 个 e2e、构建和 lint 通过；下一步部署文档并进行线上生产清单验收。
+
+## 2026-08-11｜完成线上浏览器 Session 闭环
+
+- 学习者按预期在真实 Render 静态站点完成未登录 `401`、注册 `201`、登录 `200`、刷新后 `/auth/me` `200`、注销 `204` 和再次未登录 `401`。
+- 该证据同时覆盖相对 `/api` 地址、Static Site Rewrite、生产 HTTPS、Secure Cookie、Render API、PostgreSQL Session 和注销销毁，而不只是证明页面能够打开。
+- 线上 `/health`、`/docs` 和 `/openapi.json` 均为 `200`；公开用户 schema 只含 id、email、createdAt，Projects 正确引用 Cookie 安全方案。
+- 学习者正确按层判断三类生产故障：新接口 `404` 优先检查部署版本，缺表错误定位数据库 schema，收到 HTML 而非 JSON 优先检查静态 Rewrite。
+- 精确查询确认临时账号没有项目和有效 Session，删除账号后再次查询为 0；下一课用生产检查清单结束第一轮闭环。
