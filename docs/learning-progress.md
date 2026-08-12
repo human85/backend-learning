@@ -41,7 +41,7 @@
 | PATCH 与更新边界                     | 理解中 | 已理解只开放可更新字段，服务端 ID 不接受客户端覆盖                                                                           |
 | DELETE 与 204                        | 理解中 | 已理解删除不存在返回 `404`，成功的 `204` 不包含响应体                                                                        |
 | TypeORM Entity                       | 理解中 | 已能说明普通 TypeScript type 会在编译后消失，而 Entity 通过运行时元数据描述表映射                                            |
-| 数据库迁移                           | 理解中 | 已能说明修改 Entity 不会在 `synchronize: false` 时自动改表，并阅读了第一份建表 migration                                     |
+| 数据库迁移                           | 理解中 | 已能说明修改 Entity 不会自动改表，并能用扩展、回填、切换、收缩避免新旧代码并存和代码回滚时的 schema 不兼容                   |
 | TypeORM Repository                   | 理解中 | 已解释“连接数据库”不等于“业务使用数据库”，并通过真实 CRUD 替换内存数组                                                       |
 | 异步数据库 I/O                       | 理解中 | Service 与 Controller 已改为返回 Promise，Controller 会等待删除完成并传播异常                                                |
 | 数据库测试隔离                       | 接触过 | 单元测试 mock Repository，e2e 使用独立 `mini_saas_test` 并在每个测试前重置表和序列                                           |
