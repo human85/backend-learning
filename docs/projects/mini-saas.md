@@ -8,8 +8,8 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 
 - 路径：API 位于 `apps/mini-saas/`，浏览器客户端位于 `apps/mini-saas-web/`
 - 技术栈：Node.js、TypeScript、NestJS 11、TypeORM、PostgreSQL 17、React 19、Vite 8、TanStack Query、Tailwind CSS、shadcn/ui、Jest、Vitest
-- 阶段：NestJS、PostgreSQL、认证授权、Docker 和首次部署完成，进入闭环验收
-- 30 天里程碑：第 1 至第 3 周已完成，第 4 周进行中
+- 阶段：第一轮开发与生产闭环已完成，项目进入稳定学习样本状态
+- 30 天里程碑：四周全部完成
 - 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；认证支持注册、登录、当前用户和注销；已登录用户只能 CRUD 自己的项目
 - 数据库与认证：注册和登录使用 Argon2id；PostgreSQL 保存服务端 Session；Project.ownerId 非空外键指向 User，所有查询按当前用户隔离
 
@@ -90,12 +90,14 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 线上 `/docs`、`/openapi.json` 与 `/health` 均返回 `200`；OpenAPI 包含 8 条路径、6 个 schema 和正确的 `mini_saas_session` Cookie 安全方案。
 - 真实浏览器通过静态站点完成 `401 → 注册 201 → 登录 200 → 刷新恢复 200 → 注销 204 → 401`，证明 Rewrite、Secure Cookie、Render API 与 Neon Session 协作正常；临时账号随后从 Neon 精确删除并验证不存在。
 
+## 第一轮完成边界
+
+Mini SaaS 已满足第一轮“能够借助 AI 从需求走到线上，并能审查常见后端边界”的目标，但不宣称完整生产就绪。尚未实现登录限流、Request ID、结构化日志、指标告警、数据库 Readiness、备份恢复演练、自动化生产 migration、性能容量和正式回滚演练。
+
 ## 下一项应用课程
 
-完成生产闭环验收：
-
-1. 完成代码、安全、数据、环境、日志与恢复入口的第一轮生产检查清单。
-2. 总结当前系统边界、已验证证据与尚未覆盖的生产能力。
-3. 根据第一轮结果决定进入 Hono + Drizzle 对照项目，或先补一个关键可靠性缺口。
+1. 建立最小 Hono + Drizzle 对照项目。
+2. 用一个纵向切片比较 NestJS 的装饰器、依赖注入、TypeORM 与 Hono 的显式路由、中间件、依赖传递、Drizzle 查询。
+3. 保留 Mini SaaS 作为后续限流、日志、Redis、事务和生产可靠性的深化载体。
 
 完成标准仍以 `docs/learning-progress.md` 的当前快照为准。
