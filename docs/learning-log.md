@@ -312,3 +312,11 @@
 - 区分 Liveness 与 Readiness：进程可响应时 Liveness 可为 `200`，数据库不可用时 Readiness 通常为 `503`；普通健康检查无法发现由合法 SQL 引起的逻辑数据删除。
 - 完成代码、安全、数据、migration、配置、部署、日志和恢复入口的生产清单复盘，并明确限流、Request ID、结构化日志、指标告警、数据库 Readiness、备份恢复演练、自动 migration、容量和正式回滚演练仍未实现。
 - 第一轮九项闭环标准均已有代码、测试或线上证据，于目标日期前 6 天完成；下一阶段进入 Hono + Drizzle 对照项目，Mini SaaS 保留为第二轮可靠性深化载体。
+
+## 2026-08-12｜建立 Hono 的显式请求链路
+
+- 对照 NestJS 识别 Hono 的核心结构：路由 handler 对应 Controller 入口，middleware 承担 Guard/Pipe 类似职责，普通函数与显式参数替代 Provider 和依赖注入容器。
+- 学习者正确预测 `鉴权 → 输入校验 → 最终 handler` 的执行结果：未登录且输入无效时先返回 `401`；已登录但输入无效时返回 `400`，最终 handler 不执行；鉴权放在前面还能减少无效工作并避免暴露受保护接口的校验细节。
+- 新建 `apps/hono-drizzle/`，用内存 ProjectsRepository、Service、Hono 路由、教学用 Session middleware 和 Zod validator 组成最小纵向切片。
+- HTTP 测试通过 `app.request()` 验证健康检查、middleware 短路、校验短路，以及清理后的输入和可信 userId 进入 Service；无需启动真实监听端口。
+- 下一步保持路由和 Service 契约不变，只把内存 Repository 替换为 Drizzle + PostgreSQL，并阅读生成的 migration SQL。

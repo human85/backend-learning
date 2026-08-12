@@ -12,17 +12,19 @@
 
 ## 当前阶段
 
-- 阶段：第一轮全栈闭环完成，准备进入 Hono + Drizzle 对照项目
-- 状态：第一轮已完成，第二轮未开始
+- 阶段：Hono + Drizzle 对照项目
+- 状态：第一轮已完成，第二轮已开始
 - 30 天计划：四周里程碑已于 2026-08-12 完成，比目标日期提前 6 天
-- 当前焦点项目：`apps/mini-saas/` 与 `apps/mini-saas-web/`
-- 实践进度：Mini SaaS 已完成需求到生产的第一轮闭环：NestJS API、PostgreSQL、Session 认证授权、测试、Docker、Render、Neon、静态前端、同源 Rewrite 和 OpenAPI 均有真实验证；生产检查清单已复盘，已知可靠性缺口明确留到第二轮
+- 当前焦点项目：`apps/hono-drizzle/`
+- 实践进度：Mini SaaS 第一轮生产闭环已完成；Hono 对照项目已建立最小 Projects 纵向切片，通过显式组装连接内存 Repository、Service、路由、鉴权 middleware 和 Zod validator，并用 HTTP 测试验证 middleware 短路与执行顺序
 
 ## 已接触的知识
 
 | 知识点                               | 程度   | 证据或说明                                                                                                                   |
 | ------------------------------------ | ------ | ---------------------------------------------------------------------------------------------------------------------------- |
 | 后端请求链路                         | 理解中 | 已了解 Controller → Service → Repository/ORM → Database                                                                      |
+| Hono 路由与中间件链                  | 理解中 | 已能预测鉴权与输入校验的先后结果；HTTP 测试证明 middleware 可在最终 handler 前以 `401` 或 `400` 短路                         |
+| 显式依赖组装                         | 接触过 | Hono 项目在 `index.ts` 中手动创建 Repository、Service 和 App，对照 NestJS Module 与依赖注入容器                              |
 | 前后端职责边界                       | 理解中 | 已理解前端负责体验、后端负责规则和校验                                                                                       |
 | Controller、Service、Repository 分工 | 理解中 | 已通过“创建项目”示例串联，但尚未编码                                                                                         |
 | Repository 名称与作用                | 理解中 | 已理解它抽象某类数据的存取入口                                                                                               |
@@ -76,11 +78,10 @@
 
 ## 当前学习任务
 
-开始 Hono + Drizzle 对照项目，用更轻量、显式的后端结构重新实现一个最小纵向切片，并与 NestJS + TypeORM 比较。
+把 Hono 项目的内存 ProjectsRepository 替换为 Drizzle + PostgreSQL，同时保持路由、Service 和 HTTP 行为不变。
 
 ## 下一步完成标准
 
-- 能解释 Hono 的路由、中间件和显式依赖如何对应 NestJS 的 Controller、Guard/Pipe 与 Provider。
 - 使用 Drizzle 定义最小 schema、生成 migration，并阅读实际 SQL。
 - 实现并测试一个带输入校验和数据库持久化的纵向切片，不提前复制 Mini SaaS 的完整架构。
 

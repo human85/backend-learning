@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "pnpm --filter @backend-learning/mini-saas start:dev",
     "dev:api": "pnpm --filter @backend-learning/mini-saas start:dev",
+    "dev:hono": "pnpm --filter @backend-learning/hono-drizzle dev",
     "dev:web": "pnpm --filter @backend-learning/mini-saas-web dev",
     "build": "pnpm --recursive --if-present build",
     "format": "prettier --write .",
@@ -24,6 +25,7 @@
   "lint-staged": {
     "*": "prettier --ignore-unknown --write",
     "apps/mini-saas/**/*.{js,mjs,cjs,ts}": "pnpm --filter @backend-learning/mini-saas exec eslint --fix",
+    "apps/hono-drizzle/**/*.{js,mjs,cjs,ts}": "pnpm --filter @backend-learning/hono-drizzle exec oxlint --fix",
     "apps/mini-saas-web/**/*.{js,mjs,cjs,ts,tsx}": "pnpm --filter @backend-learning/mini-saas-web exec oxlint --fix"
   }
 }
