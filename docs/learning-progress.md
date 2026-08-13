@@ -27,6 +27,7 @@
 | 显式依赖组装                         | 接触过 | Hono 项目在 `index.ts` 中手动创建 Repository、Service 和 App，对照 NestJS Module 与依赖注入容器                              |
 | Drizzle schema 与 migration          | 理解中 | 已能说明 schema 只描述形状、不会自动建表；Drizzle Kit 已生成 SQL 并在独立数据库执行，实际表结构与 migration 记录已查询确认   |
 | Drizzle Repository                   | 接触过 | 使用 SQL-like 的 insert/returning、where 与 orderBy 替换内存实现，路由、Service 和 Repository 接口保持不变                   |
+| 权限集成测试                         | 理解中 | 已识别只准备当前用户数据无法发现漏写 owner 过滤；双用户数据测试真实捕获删除 Drizzle `where` 后的越权查询                     |
 | 前后端职责边界                       | 理解中 | 已理解前端负责体验、后端负责规则和校验                                                                                       |
 | Controller、Service、Repository 分工 | 理解中 | 已通过“创建项目”示例串联，但尚未编码                                                                                         |
 | Repository 名称与作用                | 理解中 | 已理解它抽象某类数据的存取入口                                                                                               |
@@ -80,7 +81,7 @@
 
 ## 当前学习任务
 
-阅读 Hono + Drizzle 最小切片的 schema、migration SQL 和查询代码，并与 NestJS + TypeORM 的抽象方式进行对照。
+继续阅读 Hono + Drizzle 查询代码和测试边界，并与 NestJS + TypeORM 的抽象方式进行对照。
 
 ## 下一步完成标准
 

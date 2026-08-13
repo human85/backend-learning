@@ -25,6 +25,7 @@
 - 新增 Drizzle Repository，通过 `insert ... returning` 创建项目，通过 `where owner_id = ... order by id` 查询当前用户项目。
 - `projects.routes.ts`、`projects.service.ts` 和 `ProjectsRepository` 接口保持不变；只替换 Repository 实现并在 `index.ts` 选择它，验证显式依赖边界。
 - 数据库集成测试通过完整 HTTP pipeline 创建并读回项目，随后清空测试数据；真实 Node Server 也完成相同的 `POST → GET` 验证。
+- 资源归属集成测试同时写入用户 1 与用户 2 的项目，再以用户 1 身份查询；故意删除 `where owner_id = 1` 时测试如期失败，恢复后通过，证明测试能捕获越权回归。
 - Hono workspace 固定稳定版 Drizzle 0.45 与 TypeScript 5.9；`skipLibCheck` 只跳过 Drizzle 包内未安装的可选数据库声明，项目自身继续使用严格类型检查。
 
 ## NestJS 对照
@@ -47,6 +48,6 @@
 
 ## 下一步
 
-1. 阅读并解释 schema、生成 SQL 和 Drizzle 查询之间的对应关系。
+1. 继续阅读并解释 schema、生成 SQL 和 Drizzle 查询之间的对应关系。
 2. 对照 TypeORM 的 Entity、migration 和 Repository，明确两套工具隐藏或显式暴露了什么。
 3. 决定继续扩展 Hono 认证纵向切片，或进入 PostgreSQL 事务、并发与索引课程。

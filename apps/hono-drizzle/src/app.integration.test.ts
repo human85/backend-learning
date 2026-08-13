@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from './app.js';
@@ -65,6 +66,27 @@ describe('Hono and Drizzle integration', () => {
       {
         id: 1,
         name: 'Persistent project',
+        ownerId: 1,
+      },
+    ]);
+  });
+
+  it('returns only projects owned by the authenticated user', async () => {
+    await projectsRepository.insert({ name: 'My project', ownerId: 1 });
+    await projectsRepository.insert({
+      name: 'Another user project',
+      ownerId: 2,
+    });
+
+    const response = await app.request('/projects', {
+      headers: authorizationHeaders,
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual([
+      {
+        id: 1,
+        name: 'My project',
         ownerId: 1,
       },
     ]);

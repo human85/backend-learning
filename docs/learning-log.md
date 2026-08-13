@@ -329,3 +329,10 @@
 - 默认 4 个 HTTP 测试继续通过；新增数据库集成测试通过完整 Hono pipeline 写入并读回 PostgreSQL，真实 Node Server 的 `POST /projects → GET /projects` 同样通过，临时数据已清空。
 - 类型检查暴露 Drizzle 稳定版包含未安装的可选数据库声明；将 workspace 固定为 TypeScript 5.9，并仅通过 `skipLibCheck` 跳过第三方声明内部检查，项目源码仍保持 strict。
 - 下一课先逐行阅读生成 SQL 与 Drizzle 查询，再对照 TypeORM 的 Entity、Repository 和依赖注入方式。
+
+## 2026-08-13｜用双用户数据捕获越权查询
+
+- 学习者正确判断 owner 过滤属于真实 Repository 查询行为，应由连接 PostgreSQL 的集成测试覆盖；进一步澄清 Mock 也能伪造多个用户，但不会执行 Drizzle 查询，因此无法发现漏写 `where`。
+- 新增用户 1 与用户 2 各有一个项目的场景，以教学鉴权用户 1 请求 `GET /projects`，只允许返回用户 1 的项目。
+- 故意移除 Drizzle 的 owner 条件后，测试实际收到两个用户的项目并失败；恢复过滤后重新通过，证明测试能稳定发现横向越权漏洞，而不是只在正确代码上显示绿色。
+- 集成测试显式加载本地环境配置，因为它直接导入数据库工厂并绕过会加载 dotenv 的生产入口；测试完成后继续清空项目数据。
