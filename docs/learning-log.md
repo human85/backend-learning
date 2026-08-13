@@ -320,3 +320,12 @@
 - 新建 `apps/hono-drizzle/`，用内存 ProjectsRepository、Service、Hono 路由、教学用 Session middleware 和 Zod validator 组成最小纵向切片。
 - HTTP 测试通过 `app.request()` 验证健康检查、middleware 短路、校验短路，以及清理后的输入和可信 userId 进入 Service；无需启动真实监听端口。
 - 下一步保持路由和 Service 契约不变，只把内存 Repository 替换为 Drizzle + PostgreSQL，并阅读生成的 migration SQL。
+
+## 2026-08-13｜用 Drizzle 替换内存 Repository
+
+- 学习者正确指出 Drizzle schema 只定义表的形状，不会自动创建 PostgreSQL 表；只有生成并执行 migration 才会产生真实 schema 变化。
+- 使用稳定版 Drizzle 0.45 定义 Projects schema，Drizzle Kit 生成包含 identity 主键、`varchar(100) NOT NULL` 和 `owner_id integer NOT NULL` 的可读 SQL，并成功执行到独立的 `hono_drizzle` 数据库。
+- 将内存实现替换为 SQL-like Drizzle Repository；路由、Service 和 `ProjectsRepository` 接口不变，`index.ts` 改为显式创建数据库连接和 Drizzle 实现，印证持久化边界。
+- 默认 4 个 HTTP 测试继续通过；新增数据库集成测试通过完整 Hono pipeline 写入并读回 PostgreSQL，真实 Node Server 的 `POST /projects → GET /projects` 同样通过，临时数据已清空。
+- 类型检查暴露 Drizzle 稳定版包含未安装的可选数据库声明；将 workspace 固定为 TypeScript 5.9，并仅通过 `skipLibCheck` 跳过第三方声明内部检查，项目源码仍保持 strict。
+- 下一课先逐行阅读生成 SQL 与 Drizzle 查询，再对照 TypeORM 的 Entity、Repository 和依赖注入方式。

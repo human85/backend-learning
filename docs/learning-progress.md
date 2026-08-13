@@ -4,7 +4,7 @@
 
 ## 基本信息
 
-- 最近更新：2026-08-12
+- 最近更新：2026-08-13
 - 学习者背景：Web 前端工程师
 - 学习目标：通过真实 Mini SaaS 项目系统学习后端，逐步具备全栈开发能力
 - 第一轮目标：在 2026-08-18 前借助 AI 跑通一个可部署的前端 → API → 认证授权 → PostgreSQL → 测试 → Docker → 部署闭环
@@ -16,7 +16,7 @@
 - 状态：第一轮已完成，第二轮已开始
 - 30 天计划：四周里程碑已于 2026-08-12 完成，比目标日期提前 6 天
 - 当前焦点项目：`apps/hono-drizzle/`
-- 实践进度：Mini SaaS 第一轮生产闭环已完成；Hono 对照项目已建立最小 Projects 纵向切片，通过显式组装连接内存 Repository、Service、路由、鉴权 middleware 和 Zod validator，并用 HTTP 测试验证 middleware 短路与执行顺序
+- 实践进度：Mini SaaS 第一轮生产闭环已完成；Hono 对照项目已完成最小 Drizzle + PostgreSQL Projects 纵向切片，生成并执行可审查的 migration SQL，显式组装 Drizzle Repository，并通过数据库集成测试与真实 Node Server 验证持久化
 
 ## 已接触的知识
 
@@ -25,6 +25,8 @@
 | 后端请求链路                         | 理解中 | 已了解 Controller → Service → Repository/ORM → Database                                                                      |
 | Hono 路由与中间件链                  | 理解中 | 已能预测鉴权与输入校验的先后结果；HTTP 测试证明 middleware 可在最终 handler 前以 `401` 或 `400` 短路                         |
 | 显式依赖组装                         | 接触过 | Hono 项目在 `index.ts` 中手动创建 Repository、Service 和 App，对照 NestJS Module 与依赖注入容器                              |
+| Drizzle schema 与 migration          | 理解中 | 已能说明 schema 只描述形状、不会自动建表；Drizzle Kit 已生成 SQL 并在独立数据库执行，实际表结构与 migration 记录已查询确认   |
+| Drizzle Repository                   | 接触过 | 使用 SQL-like 的 insert/returning、where 与 orderBy 替换内存实现，路由、Service 和 Repository 接口保持不变                   |
 | 前后端职责边界                       | 理解中 | 已理解前端负责体验、后端负责规则和校验                                                                                       |
 | Controller、Service、Repository 分工 | 理解中 | 已通过“创建项目”示例串联，但尚未编码                                                                                         |
 | Repository 名称与作用                | 理解中 | 已理解它抽象某类数据的存取入口                                                                                               |
@@ -78,12 +80,13 @@
 
 ## 当前学习任务
 
-把 Hono 项目的内存 ProjectsRepository 替换为 Drizzle + PostgreSQL，同时保持路由、Service 和 HTTP 行为不变。
+阅读 Hono + Drizzle 最小切片的 schema、migration SQL 和查询代码，并与 NestJS + TypeORM 的抽象方式进行对照。
 
 ## 下一步完成标准
 
-- 使用 Drizzle 定义最小 schema、生成 migration，并阅读实际 SQL。
-- 实现并测试一个带输入校验和数据库持久化的纵向切片，不提前复制 Mini SaaS 的完整架构。
+- 能逐列解释 Drizzle schema 生成的 PostgreSQL SQL，以及数据库当前能保证和不能保证的规则。
+- 能解释为什么替换持久化实现时路由和 Service 不变，而 Repository 实现与 `index.ts` 必须变化。
+- 能对比 TypeORM 与 Drizzle 的表结构表达、查询风格和依赖组装方式，不把差异简单归结为工具优劣。
 
 ## 困惑与阻塞
 

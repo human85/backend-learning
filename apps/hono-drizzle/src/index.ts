@@ -1,9 +1,18 @@
+import 'dotenv/config';
 import { serve } from '@hono/node-server';
 import { createApp } from './app.js';
-import { createInMemoryProjectsRepository } from './projects/projects.repository.js';
+import { createDatabase } from './database/database.js';
+import { createDrizzleProjectsRepository } from './projects/drizzle-projects.repository.js';
 import { createProjectsService } from './projects/projects.service.js';
 
-const projectsRepository = createInMemoryProjectsRepository();
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL is required');
+}
+
+const { database } = createDatabase(databaseUrl);
+const projectsRepository = createDrizzleProjectsRepository(database);
 const projectsService = createProjectsService(projectsRepository);
 const app = createApp({ projectsService });
 const port = Number(process.env.PORT ?? 3001);

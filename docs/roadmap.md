@@ -41,7 +41,7 @@
 
 ## 第二轮｜后端能力深化（进行中）
 
-- Hono + Drizzle 对照项目（进行中）：已完成函数式路由、中间件链和显式依赖，下一步接入 SQL-like 数据访问
+- Hono + Drizzle 对照项目（最小切片已完成）：函数式路由、中间件链、显式依赖、migration 和 SQL-like PostgreSQL 数据访问已有真实验证，下一步完成对照复盘
 - PostgreSQL 关系、事务、并发、索引和性能
 - Repository 边界、集成测试与更完整的测试策略
 - Redis、缓存、限流、队列和分布式锁

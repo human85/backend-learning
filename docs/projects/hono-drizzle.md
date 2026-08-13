@@ -7,8 +7,8 @@
 ## 当前状态
 
 - 路径：`apps/hono-drizzle/`
-- 技术栈：Node.js、TypeScript、Hono、Zod、Vitest；Drizzle 尚未接入
-- 阶段：显式请求链路已完成，下一步把内存 Repository 替换为 Drizzle + PostgreSQL
+- 技术栈：Node.js、TypeScript、Hono、Zod、Drizzle ORM、Drizzle Kit、node-postgres、Vitest
+- 阶段：最小 Drizzle + PostgreSQL 纵向切片已完成
 - 启动：从仓库根目录运行 `pnpm dev:hono`，默认监听 `3001`
 
 ## 已完成
@@ -18,8 +18,14 @@
 - 增加 `GET /health`、`GET /projects` 和 `POST /projects`。
 - 增加教学用鉴权 middleware：只接受 `Authorization: Bearer learning-session`，并把可信 `userId` 写入 Hono Context。它只用于观察执行顺序，不是生产认证方案。
 - 使用 Zod 与 `@hono/zod-validator` 校验创建输入，并严格拒绝额外字段。
-- 使用内存 Repository 隔离数据库变化点；路由和 Service 不需要知道数据当前保存在数组还是 PostgreSQL。
+- 第一步先用内存 Repository 隔离数据库变化点；路由和 Service 不需要知道数据当前保存在数组还是 PostgreSQL。
 - 通过 HTTP 级测试证明执行顺序：未登录的无效请求先返回 `401`；已登录的无效请求返回 `400` 且最终 handler/Service 不执行；有效请求把清理后的输入和可信 userId 传给 Service。
+- 使用 Drizzle schema 定义 `projects` 表：数据库生成 identity ID，名称为 `varchar(100) NOT NULL`，owner ID 为 `integer NOT NULL`。
+- 使用 Drizzle Kit 从 TypeScript schema 生成并提交可审查的 migration SQL，再将它执行到独立的本机 `hono_drizzle` 数据库；没有使用 `push` 跳过 migration 文件。
+- 新增 Drizzle Repository，通过 `insert ... returning` 创建项目，通过 `where owner_id = ... order by id` 查询当前用户项目。
+- `projects.routes.ts`、`projects.service.ts` 和 `ProjectsRepository` 接口保持不变；只替换 Repository 实现并在 `index.ts` 选择它，验证显式依赖边界。
+- 数据库集成测试通过完整 HTTP pipeline 创建并读回项目，随后清空测试数据；真实 Node Server 也完成相同的 `POST → GET` 验证。
+- Hono workspace 固定稳定版 Drizzle 0.45 与 TypeScript 5.9；`skipLibCheck` 只跳过 Drizzle 包内未安装的可选数据库声明，项目自身继续使用严格类型检查。
 
 ## NestJS 对照
 
@@ -33,9 +39,14 @@
 | AppModule / DI 容器  | `index.ts` 中可见的函数调用与参数传递  |
 | Nest 测试应用        | Hono `app.request()`，无需监听真实端口 |
 
+## 当前数据库边界
+
+- 当前教学鉴权固定恢复 `userId = 1`，尚未实现用户表、真实 Session 和 owner 外键。
+- `owner_id NOT NULL` 只能保证值存在，不能保证对应用户存在；接入 Users 领域后才适合添加外键。
+- `findByOwner` 已具备正确查询条件，但当前没有 owner ID 索引；进入索引课程时再用查询计划验证是否需要添加。
+
 ## 下一步
 
-1. 使用 Drizzle 定义 Projects 表 schema。
-2. 生成并阅读 migration SQL，再应用到独立的开发数据库。
-3. 新增 Drizzle Repository，实现现有 `ProjectsRepository` 接口。
-4. 保持路由、Service 和 HTTP 测试行为不变，验证只替换数据访问层。
+1. 阅读并解释 schema、生成 SQL 和 Drizzle 查询之间的对应关系。
+2. 对照 TypeORM 的 Entity、migration 和 Repository，明确两套工具隐藏或显式暴露了什么。
+3. 决定继续扩展 Hono 认证纵向切片，或进入 PostgreSQL 事务、并发与索引课程。
