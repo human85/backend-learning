@@ -345,3 +345,11 @@
 - 理解数据库事务只能保证数据库内的原子性，不能撤回已发送的邮件等外部副作用；使用 Transactional Outbox 将资源和待发送事件放在同一事务，Worker 处理成功后确认，并通过幂等消费者承受至少一次投递。
 - 区分永久失败与临时失败：临时数据库故障可退避重试，格式错误消息应在有限尝试后进入死信队列；异步资源用 `202` 表示已接受，状态查询成功即使任务失败仍返回 `200`，并按 Session userId 限定任务归属。
 - 本节为概念训练，尚未在 Mini SaaS 或 Hono 项目中实现限流、Request ID、Outbox、队列和异步任务；下一步可用小实验把幂等记录与唯一约束落地。
+
+## 2026-09-01｜用联合唯一约束落地幂等 reservation
+
+- 将概念模型落到 Hono + Drizzle：新增 `idempotency_records` 表，保存 `user_id`、服务端定义的 `operation`、客户端幂等键、请求哈希、处理状态和原始响应。
+- 生成并审查 migration SQL，确认 PostgreSQL 实际创建 `UNIQUE (user_id, operation, idempotency_key)`；同一个 key 在不同用户或不同操作下可以各自建立记录。
+- Repository 使用 `INSERT ... ON CONFLICT DO NOTHING` 取得 reservation，避免“先查询再插入”的竞态；同哈希返回 `replay` 或 `in-progress`，不同哈希返回 `conflict`。
+- 真实 PostgreSQL 集成测试覆盖已完成响应重放、同范围错误复用、跨用户/跨操作隔离和并发竞争；Hono 普通测试 4 项、集成测试 6 项、build 和 lint 均通过。
+- 本次只实现数据库原语，没有接入 HTTP 创建流程、processing 超时恢复或幂等记录清理；幂等知识仍保持“理解中”，下一步进入 Transactional Outbox。

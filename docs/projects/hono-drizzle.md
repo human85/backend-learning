@@ -26,6 +26,7 @@
 - `projects.routes.ts`、`projects.service.ts` 和 `ProjectsRepository` 接口保持不变；只替换 Repository 实现并在 `index.ts` 选择它，验证显式依赖边界。
 - 数据库集成测试通过完整 HTTP pipeline 创建并读回项目，随后清空测试数据；真实 Node Server 也完成相同的 `POST → GET` 验证。
 - 资源归属集成测试同时写入用户 1 与用户 2 的项目，再以用户 1 身份查询；故意删除 `where owner_id = 1` 时测试如期失败，恢复后通过，证明测试能捕获越权回归。
+- 增加 `idempotency_records` 表和 Drizzle Repository：以 `(user_id, operation, idempotency_key)` 联合唯一索引保留一次逻辑请求，保存请求哈希、处理状态和原始响应；集成测试验证重放、错误复用、跨用户/跨操作隔离和并发 reservation。
 - Hono workspace 固定稳定版 Drizzle 0.45 与 TypeScript 5.9；`skipLibCheck` 只跳过 Drizzle 包内未安装的可选数据库声明，项目自身继续使用严格类型检查。
 
 ## NestJS 对照
@@ -45,9 +46,10 @@
 - 当前教学鉴权固定恢复 `userId = 1`，尚未实现用户表、真实 Session 和 owner 外键。
 - `owner_id NOT NULL` 只能保证值存在，不能保证对应用户存在；接入 Users 领域后才适合添加外键。
 - `findByOwner` 已具备正确查询条件，但当前没有 owner ID 索引；进入索引课程时再用查询计划验证是否需要添加。
+- `idempotency_records` 当前没有用户外键，`status` 的合法值和处理超时仍由应用层负责；联合唯一索引只保证同一用户、同一操作、同一 key 不会出现两条记录。
 
 ## 下一步
 
-1. 继续阅读并解释 schema、生成 SQL 和 Drizzle 查询之间的对应关系。
-2. 对照 TypeORM 的 Entity、migration 和 Repository，明确两套工具隐藏或显式暴露了什么。
-3. 决定继续扩展 Hono 认证纵向切片，或进入 PostgreSQL 事务、并发与索引课程。
+1. 对照 TypeORM 的 Entity、migration 和 Repository，明确两套工具隐藏或显式暴露了什么。
+2. 继续学习 Transactional Outbox：让业务资源与待投递事件在同一数据库事务中提交。
+3. 再决定是否把幂等 reservation 接入 Hono 的 HTTP 创建流程，或进入事务、并发与索引的更完整实验。

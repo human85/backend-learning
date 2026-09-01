@@ -21,6 +21,15 @@ userId + operation + idempotencyKey
 
 并发请求不能只做“先查询、再插入”，因为两个请求可能同时看到不存在。数据库联合唯一约束或 Redis 原子 `SET NX` 才能仲裁竞争。
 
+本仓库的 Hono 小实验用 `idempotency_records` 保存 `processing`/`completed` 状态、请求哈希和原始响应，并用：
+
+```sql
+CREATE UNIQUE INDEX idempotency_records_scope_unique
+ON idempotency_records (user_id, operation, idempotency_key);
+```
+
+插入时使用 `ON CONFLICT DO NOTHING`，拿到插入结果的请求获得 reservation；没有插入的请求再读取已有记录，按哈希返回重放、错误复用冲突或处理中状态。真实数据库集成测试验证了两个并发请求只产生一条记录。
+
 ## 事务性 Outbox
 
 数据库事务不能回滚已经发送给邮件、支付等外部服务的请求。把业务资源和一条 outbox 事件放在同一个数据库事务中：事务回滚时没有事件，提交后 Worker 可以可靠地重试发送。
