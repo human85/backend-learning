@@ -353,3 +353,11 @@
 - Repository 使用 `INSERT ... ON CONFLICT DO NOTHING` 取得 reservation，避免“先查询再插入”的竞态；同哈希返回 `replay` 或 `in-progress`，不同哈希返回 `conflict`。
 - 真实 PostgreSQL 集成测试覆盖已完成响应重放、同范围错误复用、跨用户/跨操作隔离和并发竞争；Hono 普通测试 4 项、集成测试 6 项、build 和 lint 均通过。
 - 本次只实现数据库原语，没有接入 HTTP 创建流程、processing 超时恢复或幂等记录清理；幂等知识仍保持“理解中”，下一步进入 Transactional Outbox。
+
+## 2026-09-02｜把幂等 reservation 接入 HTTP 创建事务
+
+- 为 Drizzle 数据库连接补充普通连接与事务连接的共同类型，让 Projects Repository 和 Idempotency Repository 可以在同一事务对象上复用。
+- 新增 `idempotent-projects.service.ts`：先以 `userId + operation + Idempotency-Key` 计算请求范围和 SHA-256 请求哈希，再在一个 PostgreSQL 事务中执行 reservation、创建项目和保存 `201` 原始响应。
+- `projects.routes.ts` 保留无 key 的原有行为；带 key 时重放返回原状态码和 JSON，错误复用返回 `409`，处理中状态返回 `409`，空 key 或超过 255 字符返回 `400`。
+- 真实 Hono + PostgreSQL 集成测试新增重试、请求内容冲突和并发 HTTP 场景：全部 9 项通过；普通 HTTP 测试 4 项、build 和 lint 也通过。
+- 通过代码逐层确认请求链路：`requireDemoSession → zValidator → projects.routes.ts → idempotent-projects.service.ts → transaction → 两个 Drizzle Repository → PostgreSQL`。当前仍未实现 `processing` 超时恢复、记录清理、Outbox 和 Worker；下一课进入 Transactional Outbox。

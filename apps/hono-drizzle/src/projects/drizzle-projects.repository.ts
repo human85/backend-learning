@@ -1,5 +1,5 @@
 import { asc, eq } from 'drizzle-orm';
-import type { Database } from '../database/database.js';
+import type { DatabaseExecutor } from '../database/database.js';
 import { projectsTable } from '../database/schema.js';
 import type {
   CreateProjectRecord,
@@ -7,7 +7,7 @@ import type {
 } from './projects.repository.js';
 
 export function createDrizzleProjectsRepository(
-  database: Database,
+  database: DatabaseExecutor,
 ): ProjectsRepository {
   return {
     async insert(project: CreateProjectRecord) {

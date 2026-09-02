@@ -30,6 +30,8 @@ ON idempotency_records (user_id, operation, idempotency_key);
 
 插入时使用 `ON CONFLICT DO NOTHING`，拿到插入结果的请求获得 reservation；没有插入的请求再读取已有记录，按哈希返回重放、错误复用冲突或处理中状态。真实数据库集成测试验证了两个并发请求只产生一条记录。
 
+在 Hono 的 `POST /projects` 实验中，reservation、项目插入和原始 `201` 响应又被放进同一个 PostgreSQL 事务：项目插入失败时 reservation 也回滚，重试可以重新获得 reservation；项目和响应都提交后，后续相同 key 才能安全重放。事务内的竞争请求会等待唯一约束的结果，因此通常直接读到已完成记录。这个实验仍没有处理长时间停留的 `processing` 记录，生产系统需要超时、恢复或过期策略。
+
 ## 事务性 Outbox
 
 数据库事务不能回滚已经发送给邮件、支付等外部服务的请求。把业务资源和一条 outbox 事件放在同一个数据库事务中：事务回滚时没有事件，提交后 Worker 可以可靠地重试发送。

@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import type { Database } from '../database/database.js';
+import type { DatabaseExecutor } from '../database/database.js';
 import {
   idempotencyRecordsTable,
   type IdempotencyRecordRow,
@@ -43,7 +43,7 @@ function scopeCondition(scope: IdempotencyScope) {
 }
 
 export function createIdempotencyRepository(
-  database: Database,
+  database: DatabaseExecutor,
 ): IdempotencyRepository {
   return {
     async reserve(scope, requestHash) {
