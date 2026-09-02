@@ -29,6 +29,7 @@
 - 增加 `idempotency_records` 表和 Drizzle Repository：以 `(user_id, operation, idempotency_key)` 联合唯一索引保留一次逻辑请求，保存请求哈希、处理状态和原始响应；集成测试验证重放、错误复用、跨用户/跨操作隔离和并发 reservation。
 - 将幂等能力接入 `POST /projects`：认证和 Zod 校验通过后，带 `Idempotency-Key` 的请求在同一数据库事务中完成 reservation、项目插入和响应保存；重试返回保存的原始响应，同 key 不同 body 返回 `409`，并发请求只创建一个项目。
 - 新增 `DatabaseExecutor` 类型，让普通 Drizzle 连接和事务连接共用同一 Repository 接口；集成测试串行运行，避免多个测试文件同时清理同一个教学数据库。
+- 新增 `outbox_events` 表和 Repository；普通创建与幂等创建都通过项目创建 Service，在同一个事务中写入 `project.created` 的 `pending` 事件。当前只证明可靠落库，尚未实现事件 Worker。
 - Hono workspace 固定稳定版 Drizzle 0.45 与 TypeScript 5.9；`skipLibCheck` 只跳过 Drizzle 包内未安装的可选数据库声明，项目自身继续使用严格类型检查。
 
 ## NestJS 对照
@@ -49,9 +50,10 @@
 - `owner_id NOT NULL` 只能保证值存在，不能保证对应用户存在；接入 Users 领域后才适合添加外键。
 - `findByOwner` 已具备正确查询条件，但当前没有 owner ID 索引；进入索引课程时再用查询计划验证是否需要添加。
 - `idempotency_records` 当前没有用户外键，`status` 的合法值和处理超时仍由应用层负责；联合唯一索引只保证同一用户、同一操作、同一 key 不会出现两条记录。
+- `outbox_events` 保存事件类型、聚合 ID、JSON 文本 payload、处理状态、尝试次数和错误信息；当前没有消费者、锁领取、重试退避或死信队列。
 
 ## 下一步
 
 1. 对照 TypeORM 的 Entity、migration 和 Repository，明确两套工具隐藏或显式暴露了什么。
-2. 继续学习 Transactional Outbox：让业务资源与待投递事件在同一数据库事务中提交。
+2. 实现一个最小 Outbox Worker：领取 `pending` 事件、模拟外部发送、成功确认，失败增加尝试次数。
 3. 再补充 `processing` 记录的超时恢复/过期回收，再进入事务、并发与索引的更完整实验。

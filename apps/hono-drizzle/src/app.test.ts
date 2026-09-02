@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createApp } from './app.js';
+import type { IdempotentProjectsService } from './idempotency/idempotent-projects.service.js';
+import type { ProjectCreationService } from './projects/project-creation.service.js';
 import type { ProjectsService } from './projects/projects.service.js';
 
 const authorizationHeaders = {
@@ -14,9 +16,27 @@ function createMockProjectsService(): ProjectsService {
   };
 }
 
+function createMockProjectCreationService(
+  projectsService: ProjectsService,
+): ProjectCreationService {
+  return { create: projectsService.create };
+}
+
+function createMockIdempotentProjectsService(): IdempotentProjectsService {
+  return { create: vi.fn() };
+}
+
+function createTestApp(projectsService: ProjectsService) {
+  return createApp({
+    projectsService,
+    projectCreationService: createMockProjectCreationService(projectsService),
+    idempotentProjectsService: createMockIdempotentProjectsService(),
+  });
+}
+
 describe('Hono request pipeline', () => {
   it('returns application health without starting an HTTP server', async () => {
-    const app = createApp({ projectsService: createMockProjectsService() });
+    const app = createTestApp(createMockProjectsService());
 
     const response = await app.request('/health');
 
@@ -26,7 +46,7 @@ describe('Hono request pipeline', () => {
 
   it('returns 401 before validating an unauthenticated request', async () => {
     const projectsService = createMockProjectsService();
-    const app = createApp({ projectsService });
+    const app = createTestApp(projectsService);
 
     const response = await app.request('/projects', {
       method: 'POST',
@@ -40,7 +60,7 @@ describe('Hono request pipeline', () => {
 
   it('returns 400 without calling the service when validation fails', async () => {
     const projectsService = createMockProjectsService();
-    const app = createApp({ projectsService });
+    const app = createTestApp(projectsService);
 
     const response = await app.request('/projects', {
       method: 'POST',
@@ -59,7 +79,7 @@ describe('Hono request pipeline', () => {
       name: 'Launch website',
       ownerId: 1,
     });
-    const app = createApp({ projectsService });
+    const app = createTestApp(projectsService);
 
     const response = await app.request('/projects', {
       method: 'POST',

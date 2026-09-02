@@ -81,12 +81,12 @@
 | HTTP 错误与安全边界                  | 理解中 | 已区分路由不存在与资源不存在都可返回 `404`，以及 `400`、`401`、`403`、`409`、`429`、`500` 的不同语义；任务失败状态查询仍可返回 `200`        |
 | 限流、重试与敏感日志                 | 理解中 | 已理解 IP 与账号双维度限流、`429`/`Retry-After`、指数退避和重试风暴；确认密码、Cookie、Session ID 和 Token 不能写入日志                     |
 | 幂等请求与联合唯一约束               | 理解中 | 已在 Hono + Drizzle 中将联合唯一 reservation 接入 `POST /projects`：同 key 重放原响应、不同 body 返回 `409`、并发只创建一次；过期回收未接入 |
-| Transactional Outbox 与消息投递      | 理解中 | 已理解数据库事务不能回滚外部邮件，项目与 outbox 事件应原子提交；Worker 处理后确认、允许至少一次投递，并对永久失败使用死信队列               |
+| Transactional Outbox 与消息投递      | 理解中 | 已在 Hono + Drizzle 中把项目和 `project.created` pending 事件放进同一事务；尚未实现 Worker、确认、重试和死信队列                            |
 | 异步任务与资源状态                   | 接触过 | 已能用 `202` 表示已接受但未完成的任务，用 `jobId` 查询状态；查询任务按 Session userId 限定归属，任务失败状态与查询失败分开                  |
 
 ## 当前学习任务
 
-复盘已接入 `POST /projects` 的幂等事务编排，随后继续学习第二轮可靠性小节：Transactional Outbox、消息确认、死信队列和异步任务状态；幂等记录过期回收、Outbox、队列和任务代码仍未实现。
+复盘已接入 `POST /projects` 的幂等事务编排，并完成 Transactional Outbox 的可靠写入；随后学习 Worker 消费、消息确认、重试/死信队列和异步任务状态。幂等记录过期回收仍未接入。
 
 ## 下一步完成标准
 
@@ -96,7 +96,8 @@
 - 能设计超时重试、幂等键、Outbox 和异步任务状态的基本边界，区分数据库内部原子性与外部服务不可回滚的副作用。
 - 能解释联合唯一索引如何在并发请求中选出一个 reservation，并指出 `processing` 记录崩溃后的恢复/过期策略。
 - 能沿着 `POST /projects` 的路由、幂等 Service、事务和两个 Repository 读懂一次重试请求，并说明为什么数据库失败会回滚项目和 reservation。
+- 能解释 `outbox_events` 为什么必须与项目写入共享一个事务，并指出 pending 事件还需要谁来消费。
 
 ## 困惑与阻塞
 
-目前没有已记录的阻塞。Mini SaaS 当前不是完整生产就绪系统：登录限流、Request ID、结构化日志、指标告警、数据库 Readiness、备份恢复演练、自动化生产 migration、性能容量和正式回滚演练，以及幂等记录过期回收、Outbox/队列代码尚未实现，将在第二轮按优先级补充。
+目前没有已记录的阻塞。Mini SaaS 当前不是完整生产就绪系统：登录限流、Request ID、结构化日志、指标告警、数据库 Readiness、备份恢复演练、自动化生产 migration、性能容量和正式回滚演练，以及幂等记录过期回收、Outbox Worker/队列代码尚未实现，将在第二轮按优先级补充。

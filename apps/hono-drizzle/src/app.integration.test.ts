@@ -3,9 +3,14 @@ import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from './app.js';
 import { createDatabase } from './database/database.js';
-import { idempotencyRecordsTable, projectsTable } from './database/schema.js';
+import {
+  idempotencyRecordsTable,
+  outboxEventsTable,
+  projectsTable,
+} from './database/schema.js';
 import { createIdempotentProjectsService } from './idempotency/idempotent-projects.service.js';
 import { createDrizzleProjectsRepository } from './projects/drizzle-projects.repository.js';
+import { createProjectCreationService } from './projects/project-creation.service.js';
 import { createProjectsService } from './projects/projects.service.js';
 
 const authorizationHeaders = {
@@ -25,10 +30,17 @@ describe('Hono and Drizzle integration', () => {
     databaseConnection.database,
   );
   const projectsService = createProjectsService(projectsRepository);
+  const projectCreationService = createProjectCreationService(
+    databaseConnection.database,
+  );
   const idempotentProjectsService = createIdempotentProjectsService(
     databaseConnection.database,
   );
-  const app = createApp({ projectsService, idempotentProjectsService });
+  const app = createApp({
+    projectsService,
+    projectCreationService,
+    idempotentProjectsService,
+  });
 
   beforeAll(async () => {
     await databaseConnection.database.execute(sql`select 1`);
@@ -36,13 +48,13 @@ describe('Hono and Drizzle integration', () => {
 
   beforeEach(async () => {
     await databaseConnection.database.execute(
-      sql`truncate table ${projectsTable}, ${idempotencyRecordsTable} restart identity`,
+      sql`truncate table ${projectsTable}, ${idempotencyRecordsTable}, ${outboxEventsTable} restart identity`,
     );
   });
 
   afterAll(async () => {
     await databaseConnection.database.execute(
-      sql`truncate table ${projectsTable}, ${idempotencyRecordsTable} restart identity`,
+      sql`truncate table ${projectsTable}, ${idempotencyRecordsTable}, ${outboxEventsTable} restart identity`,
     );
     await databaseConnection.close();
   });
@@ -73,6 +85,16 @@ describe('Hono and Drizzle integration', () => {
         ownerId: 1,
       },
     ]);
+
+    const events = await databaseConnection.database
+      .select()
+      .from(outboxEventsTable);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      eventType: 'project.created',
+      aggregateId: 1,
+      status: 'pending',
+    });
   });
 
   it('returns only projects owned by the authenticated user', async () => {
@@ -123,6 +145,18 @@ describe('Hono and Drizzle integration', () => {
       headers: authorizationHeaders,
     });
     await expect(listResponse.json()).resolves.toHaveLength(1);
+
+    const events = await databaseConnection.database
+      .select()
+      .from(outboxEventsTable);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      eventType: 'project.created',
+      aggregateType: 'project',
+      aggregateId: 1,
+      status: 'pending',
+      attempts: 0,
+    });
   });
 
   it('rejects a reused key when the request body changes', async () => {

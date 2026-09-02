@@ -1,7 +1,6 @@
 import type { Database } from '../database/database.js';
-import { createDrizzleProjectsRepository } from '../projects/drizzle-projects.repository.js';
+import { createProjectWithOutbox } from '../projects/project-creation.service.js';
 import type { Project } from '../projects/projects.repository.js';
-import { createProjectsService } from '../projects/projects.service.js';
 import { createIdempotencyRepository } from './idempotency.repository.js';
 import { hashIdempotencyRequest } from './request-hash.js';
 
@@ -35,8 +34,6 @@ export function createIdempotentProjectsService(
 
       return database.transaction(async (transaction) => {
         const idempotencyRepository = createIdempotencyRepository(transaction);
-        const projectsRepository = createDrizzleProjectsRepository(transaction);
-        const projectsService = createProjectsService(projectsRepository);
         const reservation = await idempotencyRepository.reserve(
           scope,
           requestHash,
@@ -65,7 +62,11 @@ export function createIdempotentProjectsService(
           return { kind: 'in-progress' };
         }
 
-        const project = await projectsService.create(name, ownerId);
+        const project = await createProjectWithOutbox(
+          transaction,
+          name,
+          ownerId,
+        );
         await idempotencyRepository.complete(scope, requestHash, {
           status: 201,
           body: JSON.stringify(project),

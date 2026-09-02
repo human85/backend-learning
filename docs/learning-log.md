@@ -361,3 +361,10 @@
 - `projects.routes.ts` 保留无 key 的原有行为；带 key 时重放返回原状态码和 JSON，错误复用返回 `409`，处理中状态返回 `409`，空 key 或超过 255 字符返回 `400`。
 - 真实 Hono + PostgreSQL 集成测试新增重试、请求内容冲突和并发 HTTP 场景：全部 9 项通过；普通 HTTP 测试 4 项、build 和 lint 也通过。
 - 通过代码逐层确认请求链路：`requireDemoSession → zValidator → projects.routes.ts → idempotent-projects.service.ts → transaction → 两个 Drizzle Repository → PostgreSQL`。当前仍未实现 `processing` 超时恢复、记录清理、Outbox 和 Worker；下一课进入 Transactional Outbox。
+
+## 2026-09-02｜把 Transactional Outbox 接到项目创建
+
+- 新增 `outbox_events` 表及 Drizzle Repository，保存 `eventType`、聚合 ID、payload、`pending` 状态、尝试次数和错误信息；生成并执行 `0002_solid_firestar.sql` migration。
+- 抽出 `project-creation.service.ts`，普通创建和幂等创建都在同一数据库事务中完成项目写入与 `project.created` Outbox 事件写入；幂等层再保存原始 HTTP 响应。
+- 集成测试验证普通创建和幂等创建都会留下一个 `pending` 事件，幂等重试不会重复插入项目或事件；普通测试 4 项、集成测试 9 项、build 和 lint 均通过。
+- 明确边界：Outbox 行提交只证明“待发送事件不会因 API 进程崩溃而丢失”，不代表外部邮件/支付已经成功；下一课实现最小 Worker 的领取、成功确认和失败重试。

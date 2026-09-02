@@ -7,6 +7,7 @@ import type {
   IdempotentProjectResult,
 } from '../idempotency/idempotent-projects.service.js';
 import { createProjectSchema } from './project.schema.js';
+import type { ProjectCreationService } from './project-creation.service.js';
 import type { ProjectsService } from './projects.service.js';
 
 function replayResponse(
@@ -20,7 +21,8 @@ function replayResponse(
 
 export function createProjectsRoutes(
   projectsService: ProjectsService,
-  idempotentProjectsService?: IdempotentProjectsService,
+  projectCreationService: ProjectCreationService,
+  idempotentProjectsService: IdempotentProjectsService,
 ) {
   const projects = new Hono<AppEnv>();
 
@@ -50,10 +52,6 @@ export function createProjectsRoutes(
       }
 
       if (idempotencyKey !== undefined) {
-        if (!idempotentProjectsService) {
-          throw new Error('Idempotency service is not configured');
-        }
-
         const result = await idempotentProjectsService.create(
           input.name,
           context.get('userId'),
@@ -81,7 +79,7 @@ export function createProjectsRoutes(
         return context.json(result.project, 201);
       }
 
-      const project = await projectsService.create(
+      const project = await projectCreationService.create(
         input.name,
         context.get('userId'),
       );
