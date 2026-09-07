@@ -2,7 +2,7 @@
 
 这是后端学习仓库中的第一个完整应用，使用 NestJS 练习 HTTP、模块化、数据库、认证授权、Redis、测试和部署。
 
-当前已完成进程内 Projects CRUD，并开始使用 TypeORM 将数据迁移到 PostgreSQL。项目级学习状态记录在根目录的 `docs/projects/mini-saas.md`，全局学习进度记录在 `docs/learning-progress.md`。
+第一轮已完成 PostgreSQL 持久化、Session 认证、项目归属授权、测试、Docker 与历史部署验收；Redis 等仍是后续候选内容。当前实现边界见 [项目档案](../../docs/projects/mini-saas.md)，下一课见 [学习进度](../../docs/learning-progress.md)。后续在本应用练习排错、基础 CI 和陌生业务需求交付。
 
 ## 本地数据库
 

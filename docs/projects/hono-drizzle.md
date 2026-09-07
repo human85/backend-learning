@@ -1,14 +1,14 @@
-# Hono + Drizzle 对照项目
+# Hono + Drizzle 对照与可靠性实验
 
 ## 项目定位
 
-这个项目用与 Mini SaaS 相同的后端问题，对照观察 Hono 与 NestJS、Drizzle 与 TypeORM 的抽象差异。第一步只实现一个最小 Projects 纵向切片，避免同时复制完整认证、数据库和部署架构。
+这个项目用与 Mini SaaS 相同的后端问题，对照观察 Hono 与 NestJS、Drizzle 与 TypeORM 的抽象差异。最小 Projects 对照切片已经完成；现在承载第二轮 R1 的幂等与 Outbox 可靠性实验。R1 达标后暂停扩展，返回 Mini SaaS，不复制完整认证、浏览器和部署架构。
 
 ## 当前状态
 
 - 路径：`apps/hono-drizzle/`
 - 技术栈：Node.js、TypeScript、Hono、Zod、Drizzle ORM、Drizzle Kit、node-postgres、Vitest
-- 阶段：最小 Drizzle + PostgreSQL 纵向切片已完成
+- 阶段：最小 Drizzle + PostgreSQL 纵向切片已完成；幂等与 Outbox 写入已实现，R1 失败验证与 Worker 待完成
 - 启动：从仓库根目录运行 `pnpm dev:hono`，默认监听 `3001`
 
 ## 已完成
@@ -23,14 +23,14 @@
 - 使用 Drizzle schema 定义 `projects` 表：数据库生成 identity ID，名称为 `varchar(100) NOT NULL`，owner ID 为 `integer NOT NULL`。
 - 使用 Drizzle Kit 从 TypeScript schema 生成并提交可审查的 migration SQL，再将它执行到独立的本机 `hono_drizzle` 数据库；没有使用 `push` 跳过 migration 文件。
 - 新增 Drizzle Repository，通过 `insert ... returning` 创建项目，通过 `where owner_id = ... order by id` 查询当前用户项目。
-- `projects.routes.ts`、`projects.service.ts` 和 `ProjectsRepository` 接口保持不变；只替换 Repository 实现并在 `index.ts` 选择它，验证显式依赖边界。
+- 在替换内存持久化的那一步，`projects.routes.ts`、`projects.service.ts` 和 `ProjectsRepository` 接口保持不变，只替换 Repository 实现并在 `index.ts` 选择它；随后加入幂等与 Outbox 时，路由和依赖组装已相应扩展。
 - 数据库集成测试通过完整 HTTP pipeline 创建并读回项目，随后清空测试数据；真实 Node Server 也完成相同的 `POST → GET` 验证。
 - 资源归属集成测试同时写入用户 1 与用户 2 的项目，再以用户 1 身份查询；故意删除 `where owner_id = 1` 时测试如期失败，恢复后通过，证明测试能捕获越权回归。
 - 增加 `idempotency_records` 表和 Drizzle Repository：以 `(user_id, operation, idempotency_key)` 联合唯一索引保留一次逻辑请求，保存请求哈希、处理状态和原始响应；集成测试验证重放、错误复用、跨用户/跨操作隔离和并发 reservation。
 - 将幂等能力接入 `POST /projects`：认证和 Zod 校验通过后，带 `Idempotency-Key` 的请求在同一数据库事务中完成 reservation、项目插入和响应保存；重试返回保存的原始响应，同 key 不同 body 返回 `409`，并发请求只创建一个项目。
 - 新增 `DatabaseExecutor` 类型，让普通 Drizzle 连接和事务连接共用同一 Repository 接口；集成测试串行运行，避免多个测试文件同时清理同一个教学数据库。
 - 新增 `outbox_events` 表和 Repository；普通创建与幂等创建都通过项目创建 Service，在同一个事务中写入 `project.created` 的 `pending` 事件。当前只证明可靠落库，尚未实现事件 Worker。
-- Hono workspace 固定稳定版 Drizzle 0.45 与 TypeScript 5.9；`skipLibCheck` 只跳过 Drizzle 包内未安装的可选数据库声明，项目自身继续使用严格类型检查。
+- Hono workspace 固定 Drizzle 0.45 与 TypeScript 5.9；`skipLibCheck` 跳过声明文件类型检查，用于当时 Drizzle 可选数据库声明的兼容问题，项目源码继续使用严格类型检查。
 
 ## NestJS 对照
 
@@ -49,11 +49,18 @@
 - 当前教学鉴权固定恢复 `userId = 1`，尚未实现用户表、真实 Session 和 owner 外键。
 - `owner_id NOT NULL` 只能保证值存在，不能保证对应用户存在；接入 Users 领域后才适合添加外键。
 - `findByOwner` 已具备正确查询条件，但当前没有 owner ID 索引；进入索引课程时再用查询计划验证是否需要添加。
-- `idempotency_records` 当前没有用户外键，`status` 的合法值和处理超时仍由应用层负责；联合唯一索引只保证同一用户、同一操作、同一 key 不会出现两条记录。
+- `idempotency_records` 当前没有用户外键或 status CHECK 约束；联合唯一索引保证同一用户、同一操作、同一 key 不会出现两条记录，状态转换由应用层控制。
+- HTTP 创建将 reservation、项目、Outbox 和 completed 响应放在同一事务；该事务最终回滚时不会留下本次已提交的 processing。Repository 原语单独提交 reservation 时可能留下 processing，不能据此认定 HTTP 创建也需要同样的超时接管。
+- completed 记录的保留期限与清理尚未设计；清理会改变迟到重试的语义，应独立决定重试窗口，不能与 processing 恢复混为一谈。
 - `outbox_events` 保存事件类型、聚合 ID、JSON 文本 payload、处理状态、尝试次数和错误信息；当前没有消费者、锁领取、重试退避或死信队列。
 
-## 下一步
+## 实现与验证注意点
 
-1. 对照 TypeORM 的 Entity、migration 和 Repository，明确两套工具隐藏或显式暴露了什么。
-2. 实现一个最小 Outbox Worker：领取 `pending` 事件、模拟外部发送、成功确认，失败增加尝试次数。
-3. 再补充 `processing` 记录的超时恢复/过期回收，再进入事务、并发与索引的更完整实验。
+- 当前 HTTP 创建使用事务编排；底层 `ProjectsService.create` 仍可直接插入项目。未来修改创建流程时审查是否需要收敛业务入口，避免绕过事件规则；这是待审查的维护点，不是已确认的 HTTP 缺陷，也未在本次重构。
+- 现有集成用例包含成功落库、owner 过滤、重放、内容冲突和并发；尚无 Outbox 写入失败后整体回滚用例。
+- `pnpm test` 不执行这里的数据库集成测试；使用 `pnpm --filter @backend-learning/hono-drizzle test:integration`。
+- 当前集成测试加载 `DATABASE_URL`，会清空 projects、idempotency_records、outbox_events。运行前必须确认是可清理的隔离测试库；不能因 `.env` 已存在就直接运行。
+
+## 后续安排
+
+唯一下一课见 [学习进度](../learning-progress.md)；R1 的 Worker 范围、退出条件及暂缓内容见 [路线图](../roadmap.md)。当前固定教学身份和单库实验不构成生产认证或生产可靠性承诺。

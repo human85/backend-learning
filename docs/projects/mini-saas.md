@@ -8,7 +8,7 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 
 - 路径：API 位于 `apps/mini-saas/`，浏览器客户端位于 `apps/mini-saas-web/`
 - 技术栈：Node.js、TypeScript、NestJS 11、TypeORM、PostgreSQL 17、React 19、Vite 8、TanStack Query、Tailwind CSS、shadcn/ui、Jest、Vitest
-- 阶段：第一轮开发与生产闭环已完成，项目进入稳定学习样本状态
+- 阶段：第一轮开发与生产闭环已完成；当前作为稳定样本，待 Hono R1 收尾后进入 R2 排错与基础交付课程
 - 30 天里程碑：四周全部完成
 - 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；认证支持注册、登录、当前用户和注销；已登录用户只能 CRUD 自己的项目
 - 数据库与认证：注册和登录使用 Argon2id；PostgreSQL 保存服务端 Session；Project.ownerId 非空外键指向 User，所有查询按当前用户隔离
@@ -83,8 +83,8 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 增加生产 HTTPS 代理 e2e：先复现登录响应缺少 `Secure` Cookie，再让生产应用只信任最近一层反向代理；带 `X-Forwarded-Proto: https` 的登录响应现已正确设置 Secure Session Cookie，完整 43 个单元测试、32 个 e2e、前端 10 个测试、lint 和 build 通过。
 - 创建个人 Neon Free PostgreSQL，连接地址只保存在 Git 忽略的 `.env.production.local`；使用生产 Docker Image 查询到 4 条待执行 migration，成功在线创建 migrations、projects、sessions、users，并再次确认 4 条 migration 全部完成。
 - Render Free Web Service 从个人 GitHub `main` 的 Dockerfile 成功构建并上线；公网验证 `/health`、根路由、CORS 预检、注册登录、生产 Secure Cookie、`/auth/me`、项目创建/列表/删除、注销后 `401` 全部符合合同，临时用户、项目和 Session 已从 Neon 精确清理。
-- 前端 API 基地址从硬编码 localhost 改为构建时 `VITE_API_BASE_URL`，本地未配置仍使用 localhost；确认 onrender.com 属于 Public Suffix 后，不采用跨站 `SameSite=None`，计划让静态站点将 `/api/*` Rewrite 到 Render API，浏览器保持同源且 Cookie 继续使用 Lax。
-- React 静态站点已部署到 Render，并按官方 shadcn 登录 Block 重组认证页；页面通过相对 `/api` 地址访问后端，完整线上 Session 行为仍需在闭环验收中记录。
+- 前端 API 基地址从硬编码 localhost 改为构建时 `VITE_API_BASE_URL`，本地未配置仍使用 localhost；静态站点已通过 `/api/*` Rewrite 到 Render API，浏览器保持同源且 Cookie 继续使用 Lax。
+- React 静态站点已部署到 Render，并按 shadcn 登录 Block 重组认证页；相对 `/api` 和完整线上 Session 行为已于 2026-08-11 完成历史验收，本次文档维护未重新检查线上状态。
 - 接入 `@nestjs/swagger`，提供 `/docs` 与 `/openapi.json`；Auth 和 Projects 描述请求、响应、关键状态码及 Cookie Session，PublicUserDto 和 ProjectResponseDto 将公开合同与数据库 Entity 分离。
 - 新增 OpenAPI e2e，验证公开用户 schema 不含密码字段、Cookie 安全方案存在且 Projects 正确引用；测试首次发现安全方案名称不一致并修复。43 个单元测试、33 个 e2e、构建和 lint 通过。
 - 线上 `/docs`、`/openapi.json` 与 `/health` 均返回 `200`；OpenAPI 包含 8 条路径、6 个 schema 和正确的 `mini_saas_session` Cookie 安全方案。
@@ -96,8 +96,6 @@ Mini SaaS 已满足第一轮“能够借助 AI 从需求走到线上，并能审
 
 ## 下一项应用课程
 
-1. 建立最小 Hono + Drizzle 对照项目。
-2. 用一个纵向切片比较 NestJS 的装饰器、依赖注入、TypeORM 与 Hono 的显式路由、中间件、依赖传递、Drizzle 查询。
-3. 保留 Mini SaaS 作为后续限流、日志、Redis、事务和生产可靠性的深化载体。
+Hono 最小对照切片已经完成，当前在该项目收尾 R1。Mini SaaS 的下一阶段是 R2：Request ID、结构化日志、数据库 Readiness 与基础 CI；之后 R3 通过一个陌生业务需求验证独立拆解能力。两个阶段均未开始，具体范围及退出条件见 [路线图](../roadmap.md)。
 
-完成标准仍以 `docs/learning-progress.md` 的当前快照为准。
+Mini SaaS 承担真实认证、业务、浏览器和部署；前端保持最小验证客户端。具体下一课以 [学习进度](../learning-progress.md) 为准。
