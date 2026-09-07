@@ -42,8 +42,46 @@ describe('Hono and Drizzle integration', () => {
     idempotentProjectsService,
   });
 
+  async function enableOutboxInsertFailure() {
+    await databaseConnection.database.execute(
+      sql.raw(`
+        create or replace function hono_drizzle_fail_outbox_insert()
+        returns trigger
+        language plpgsql
+        as $function$
+        begin
+          raise exception 'Injected outbox insert failure';
+        end;
+        $function$;
+      `),
+    );
+    await databaseConnection.database.execute(
+      sql.raw(`
+        create trigger hono_drizzle_fail_outbox_insert_trigger
+        before insert on outbox_events
+        for each row
+        execute function hono_drizzle_fail_outbox_insert();
+      `),
+    );
+  }
+
+  async function disableOutboxInsertFailure() {
+    await databaseConnection.database.execute(
+      sql.raw(`
+        drop trigger if exists hono_drizzle_fail_outbox_insert_trigger
+        on outbox_events;
+      `),
+    );
+    await databaseConnection.database.execute(
+      sql.raw(`
+        drop function if exists hono_drizzle_fail_outbox_insert();
+      `),
+    );
+  }
+
   beforeAll(async () => {
     await databaseConnection.database.execute(sql`select 1`);
+    await disableOutboxInsertFailure();
   });
 
   beforeEach(async () => {
@@ -216,5 +254,98 @@ describe('Hono and Drizzle integration', () => {
       headers: authorizationHeaders,
     });
     await expect(listResponse.json()).resolves.toHaveLength(1);
+  });
+
+  it('rolls back the project when the outbox insert fails', async () => {
+    await enableOutboxInsertFailure();
+
+    try {
+      const response = await app.request('/projects', {
+        method: 'POST',
+        headers: authorizationHeaders,
+        body: JSON.stringify({ name: 'Rolled back project' }),
+      });
+
+      expect(response.status).toBe(500);
+      await expect(
+        databaseConnection.database.select().from(projectsTable),
+      ).resolves.toEqual([]);
+      await expect(
+        databaseConnection.database.select().from(outboxEventsTable),
+      ).resolves.toEqual([]);
+    } finally {
+      await disableOutboxInsertFailure();
+    }
+  });
+
+  it('rolls back the idempotency reservation and retries after recovery', async () => {
+    const headers = {
+      ...authorizationHeaders,
+      'Idempotency-Key': 'recoverable-project-1',
+    };
+
+    await enableOutboxInsertFailure();
+
+    try {
+      const failedResponse = await app.request('/projects', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ name: 'Recoverable project' }),
+      });
+
+      expect(failedResponse.status).toBe(500);
+      await expect(
+        databaseConnection.database.select().from(projectsTable),
+      ).resolves.toEqual([]);
+      await expect(
+        databaseConnection.database.select().from(idempotencyRecordsTable),
+      ).resolves.toEqual([]);
+      await expect(
+        databaseConnection.database.select().from(outboxEventsTable),
+      ).resolves.toEqual([]);
+    } finally {
+      await disableOutboxInsertFailure();
+    }
+
+    const retryResponse = await app.request('/projects', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ name: 'Recoverable project' }),
+    });
+
+    expect(retryResponse.status).toBe(201);
+    const retryBody = await retryResponse.json();
+    expect(retryBody).toMatchObject({
+      name: 'Recoverable project',
+      ownerId: 1,
+    });
+    expect(retryBody.id).toEqual(expect.any(Number));
+
+    const projects = await databaseConnection.database
+      .select()
+      .from(projectsTable);
+    expect(projects).toHaveLength(1);
+    expect(projects[0]).toEqual(retryBody);
+
+    const idempotencyRecords = await databaseConnection.database
+      .select()
+      .from(idempotencyRecordsTable);
+    expect(idempotencyRecords).toMatchObject([
+      {
+        status: 'completed',
+        responseStatus: 201,
+      },
+    ]);
+
+    const events = await databaseConnection.database
+      .select()
+      .from(outboxEventsTable);
+    expect(events).toMatchObject([
+      {
+        eventType: 'project.created',
+        aggregateId: retryBody.id,
+        status: 'pending',
+      },
+    ]);
   });
 });

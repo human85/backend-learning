@@ -8,7 +8,7 @@
 
 - 路径：`apps/hono-drizzle/`
 - 技术栈：Node.js、TypeScript、Hono、Zod、Drizzle ORM、Drizzle Kit、node-postgres、Vitest
-- 阶段：最小 Drizzle + PostgreSQL 纵向切片已完成；幂等与 Outbox 写入已实现，R1 失败验证与 Worker 待完成
+- 阶段：最小 Drizzle + PostgreSQL 纵向切片已完成；幂等与 Outbox 写入及失败回滚已验证，R1 Worker 待完成
 - 启动：从仓库根目录运行 `pnpm dev:hono`，默认监听 `3001`
 
 ## 已完成
@@ -30,6 +30,7 @@
 - 将幂等能力接入 `POST /projects`：认证和 Zod 校验通过后，带 `Idempotency-Key` 的请求在同一数据库事务中完成 reservation、项目插入和响应保存；重试返回保存的原始响应，同 key 不同 body 返回 `409`，并发请求只创建一个项目。
 - 新增 `DatabaseExecutor` 类型，让普通 Drizzle 连接和事务连接共用同一 Repository 接口；集成测试串行运行，避免多个测试文件同时清理同一个教学数据库。
 - 新增 `outbox_events` 表和 Repository；普通创建与幂等创建都通过项目创建 Service，在同一个事务中写入 `project.created` 的 `pending` 事件。当前只证明可靠落库，尚未实现事件 Worker。
+- 在隔离集成数据库中用临时 PostgreSQL trigger 让 Outbox 插入失败；真实集成测试证明普通创建不会留下项目或事件，幂等创建不会留下项目、事件或 reservation。移除故障后复用同一幂等键可成功创建一次；identity 序列不因回滚倒退，因此测试只验证业务结果，不要求 ID 连续。
 - Hono workspace 固定 Drizzle 0.45 与 TypeScript 5.9；`skipLibCheck` 跳过声明文件类型检查，用于当时 Drizzle 可选数据库声明的兼容问题，项目源码继续使用严格类型检查。
 
 ## NestJS 对照
@@ -57,10 +58,10 @@
 ## 实现与验证注意点
 
 - 当前 HTTP 创建使用事务编排；底层 `ProjectsService.create` 仍可直接插入项目。未来修改创建流程时审查是否需要收敛业务入口，避免绕过事件规则；这是待审查的维护点，不是已确认的 HTTP 缺陷，也未在本次重构。
-- 现有集成用例包含成功落库、owner 过滤、重放、内容冲突和并发；尚无 Outbox 写入失败后整体回滚用例。
+- 现有集成用例包含成功落库、owner 过滤、重放、内容冲突、并发，以及 Outbox 写入失败后的整体回滚和恢复重试；当前共 11 项数据库集成测试通过。数据库异常目前沿 Hono 默认错误路径返回 `500`，生产级错误映射不在本实验范围内。
 - `pnpm test` 不执行这里的数据库集成测试；使用 `pnpm --filter @backend-learning/hono-drizzle test:integration`。
 - 当前集成测试加载 `DATABASE_URL`，会清空 projects、idempotency_records、outbox_events。运行前必须确认是可清理的隔离测试库；不能因 `.env` 已存在就直接运行。
 
 ## 后续安排
 
-唯一下一课见 [学习进度](../learning-progress.md)；R1 的 Worker 范围、退出条件及暂缓内容见 [路线图](../roadmap.md)。当前固定教学身份和单库实验不构成生产认证或生产可靠性承诺。
+下一课实现最小单 Worker，范围、退出条件及暂缓内容见 [学习进度](../learning-progress.md) 和 [路线图](../roadmap.md)。当前固定教学身份和单库实验不构成生产认证或生产可靠性承诺。

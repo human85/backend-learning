@@ -378,3 +378,12 @@
 - 核对当前 HTTP 幂等代码：reservation、项目、Outbox 与 completed 响应同事务提交；最终回滚不会留下该次已提交的 processing。原语单独提交 reservation、未来 Worker 领取恢复和 completed 清理属于不同边界。修正专题笔记与当前计划，旧日志按追加规则保留。
 - 下一课聚焦 Outbox 写入失败的真实事务回滚与恢复后同 key 重试；该故障注入用例尚未实现，Worker 也尚未实现。运行集成测试前必须核实隔离测试库，根 pnpm test 不包含 Hono 数据库集成测试。
 - 验证：15 份 Markdown 的 Prettier 与 git diff --check 通过；38 个本地链接目标存在且已跟踪或纳入本次变更；旧学习日志前缀与迁出的 61 条知识记录保持原内容。已核对相关 package scripts 与事务/测试源码；本次未运行业务测试、数据库实验或线上验收。
+
+## 2026-09-07｜用真实故障注入验证 Outbox 事务回滚
+
+- 学习者正确指出 Outbox 的价值在于外部服务成功后无法由数据库回滚，因此事件应绑定业务动作，而不是是否带 `Idempotency-Key`；这一部分理解仍需迁移到 Worker 的确认边界。
+- 学习者首次预测普通创建失败后“不留下数据”是正确方向，但将数据库故障对应的响应判断为 `401`；带幂等键时预测会留下数据，尚未说明故障移除后的同 key 重试行为。反馈后明确：已认证请求的数据库异常当前返回 `500`，reservation、项目、Outbox 和 completed 响应在同一事务中，最终回滚不会留下本次记录。
+- 在隔离 `hono_drizzle` 数据库中新增集成故障实验：临时 PostgreSQL trigger 在真实 `outbox_events` INSERT 时抛错，没有 mock 整个事务。普通创建和带幂等键创建均验证项目、事件及幂等 reservation 回滚；移除 trigger 后同 key 返回 `201`，只创建一条项目、一条 pending 事件和一条 completed 记录。
+- 实验第一次断言恢复后 ID 为 `1`，实际发现 PostgreSQL identity 序列不会因事务回滚倒退；改为验证业务行与事件 aggregate ID 的关系，不把序列连续性当作业务正确性。
+- 工程验证：Hono 普通测试 4 项、PostgreSQL 集成测试 11 项、build、lint、Prettier check 和 `git diff --check` 通过；故障注入只作用于本地隔离数据库，测试结束后清理数据和 trigger。学习者对状态码、回滚记录和恢复重试尚未完成独立复述，因此不提升为独立掌握。
+- 下一步：先复测“事务已提交但客户端响应丢失”和“外部接收端成功但 Outbox 尚未确认”的区别，再实现单 Worker 的成功确认与有限失败重试。
