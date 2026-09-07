@@ -405,3 +405,11 @@
 - 初次断言尝试匹配 PostgreSQL 原始 trigger 错误文本，实际 Drizzle 将其包装为 `Failed query`；改为验证数据库状态、调用次数和副作用次数，避免把 ORM 错误包装格式当作业务契约。
 - 工程验证：Hono 普通测试 4 项、PostgreSQL 集成测试 15 项、build、lint、Prettier 检查和 `git diff --check` 通过；R1 工程实验完成，学习退出条件还需要资源归属短复测。
 - 下一步：复测用户 A 查询用户 B 资源时 owner 过滤的位置、测试数据和 mock/真实 SQL 证据，再决定是否进入 R2。
+
+## 2026-09-07｜R1 资源归属测试复测与集成测试隔离修正
+
+- 学习者独立答对：当前用户身份应从 Session 恢复，Repository 查询应按可信 userId 过滤；对如何设计能捕获越权的测试数据暂时不清楚。
+- 演示现有真实 PostgreSQL 测试：写入用户 1 和用户 2 各一个项目，以用户 1 请求列表并只期望用户 1 项目；临时移除 `owner_id` 条件后测试实际返回两个项目并失败，恢复后再次通过。该演示不计为学习者独立掌握。
+- 全量集成复测首次发现两个 Worker 用例偶发读取空表；原因是多个集成文件共享同一个可清空数据库，而 Vitest CLI 默认并行覆盖了配置中的串行意图。使用 `--no-file-parallelism` 重现并修正 `test:integration` 脚本，最终 3 个集成文件共 15 项稳定通过。
+- 工程验证：Hono 普通测试 4 项、数据库集成测试 15 项、build、lint、Prettier 和 diff 检查通过；R1 工程退出条件完成，R1 学习退出仍等待资源归属测试设计的独立复述。
+- 下一步：学习者不看笔记重新说明双用户测试、Repository 过滤和 mock/真实 SQL 的证据边界；通过后进入 Mini SaaS R2 的 Request ID 与结构化日志。

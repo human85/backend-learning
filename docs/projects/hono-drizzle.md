@@ -8,7 +8,7 @@
 
 - 路径：`apps/hono-drizzle/`
 - 技术栈：Node.js、TypeScript、Hono、Zod、Drizzle ORM、Drizzle Kit、node-postgres、Vitest
-- 阶段：最小 Drizzle + PostgreSQL 纵向切片已完成；幂等、Outbox 失败回滚、单 Worker 基础处理及重复投递去重已验证，R1 资源归属复测待完成
+- 阶段：最小 Drizzle + PostgreSQL 纵向切片已完成；幂等、Outbox 失败回滚、单 Worker 基础处理及重复投递去重已验证，R1 资源归属学习复测待完成
 - 启动：从仓库根目录运行 `pnpm dev:hono`，默认监听 `3001`
 
 ## 已完成
@@ -61,9 +61,10 @@
 
 - 当前 HTTP 创建使用事务编排；底层 `ProjectsService.create` 仍可直接插入项目。未来修改创建流程时审查是否需要收敛业务入口，避免绕过事件规则；这是待审查的维护点，不是已确认的 HTTP 缺陷，也未在本次重构。
 - 现有集成用例包含成功落库、owner 过滤、重放、内容冲突、并发、Outbox 写入失败后的整体回滚和恢复重试，以及 Worker 成功、重试、失败上限、重启继续处理和重复投递去重；当前共 15 项数据库集成测试通过。当前 Worker 没有领取锁，只适用于单 Worker 教学实验，不代表多实例安全或恰好一次投递。
+- 集成测试会清空共享教学数据库，因此 `test:integration` 脚本显式使用 `--no-file-parallelism`；仅依赖 Vitest 配置中的并行选项曾出现跨文件清理竞态，已通过一次故障复现确认并修正。
 - `pnpm test` 不执行这里的数据库集成测试；使用 `pnpm --filter @backend-learning/hono-drizzle test:integration`。
 - 当前集成测试加载 `DATABASE_URL`，会清空 projects、idempotency_records、outbox_events。运行前必须确认是可清理的隔离测试库；不能因 `.env` 已存在就直接运行。
 
 ## 后续安排
 
-下一课进行 R1 最终资源归属复测，范围、退出条件及暂缓内容见 [学习进度](../learning-progress.md) 和 [路线图](../roadmap.md)。当前固定教学身份和单库实验不构成生产认证或生产可靠性承诺。
+下一课完成 R1 资源归属学习复测后再回到 Mini SaaS R2，范围、退出条件及暂缓内容见 [学习进度](../learning-progress.md) 和 [路线图](../roadmap.md)。当前固定教学身份和单库实验不构成生产认证或生产可靠性承诺。

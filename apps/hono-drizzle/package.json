@@ -11,7 +11,7 @@
     "lint": "oxlint src",
     "start": "node dist/index.js",
     "test": "vitest run",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.ts --no-file-parallelism"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.0",
