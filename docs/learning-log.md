@@ -396,3 +396,12 @@
 - 新增 `outbox.worker.ts`，默认最多尝试 3 次；集成测试使用模拟接收端验证成功确认、临时失败重试、最终失败记录和创建新 Worker 后继续处理 pending 事件。Worker 保持单实例、无领取锁，未声称多实例安全或恰好一次投递。
 - 工程验证：Hono 普通测试 4 项、PostgreSQL 集成测试 14 项、build、lint 和 Prettier 检查通过；学习者对至少一次投递和接收端去重已能在改变条件的场景中正确预测，接收端去重实现和重复投递故障注入留待下一课。
 - 下一步：制造“接收端已成功但 `processed` 更新前 Worker 中断”，验证重复调用，并以 `outbox_events.id` 作为稳定事件 ID 在模拟接收端去重。
+
+## 2026-09-07｜验证 Outbox 重复投递与事件 ID 去重
+
+- 学习者正确预测：确认前崩溃会让下一次调用次数增加；没有接收端幂等时副作用次数也增加，有稳定事件 ID 去重时副作用次数不增加。
+- 使用真实 PostgreSQL trigger 阻断 `processed` 更新，模拟接收端先成功、Worker 后确认失败；第一次执行后事件仍为 `pending`、attempts 不变，重启 Worker 后再次读取同一事件。
+- 集成测试验证接收端调用两次，但以 `outbox_events.id` 作为去重键的模拟副作用只应用一次，最终事件变为 `processed`。没有据此声称恰好一次投递；当前仍是单 Worker、至少一次处理实验。
+- 初次断言尝试匹配 PostgreSQL 原始 trigger 错误文本，实际 Drizzle 将其包装为 `Failed query`；改为验证数据库状态、调用次数和副作用次数，避免把 ORM 错误包装格式当作业务契约。
+- 工程验证：Hono 普通测试 4 项、PostgreSQL 集成测试 15 项、build、lint、Prettier 检查和 `git diff --check` 通过；R1 工程实验完成，学习退出条件还需要资源归属短复测。
+- 下一步：复测用户 A 查询用户 B 资源时 owner 过滤的位置、测试数据和 mock/真实 SQL 证据，再决定是否进入 R2。
