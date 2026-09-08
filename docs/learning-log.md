@@ -532,6 +532,12 @@
 - Agent 补充：先用响应 Request ID 找到该次 DELETE 的日志，核对 route、statusCode、durationMs 和认证用户，再确认具体 projectId 是否存在、owner 是否正确；根据这些证据决定重试或补偿。仅看通用错误日志不能证明目标数据状态，也不能保证重试不会删错。
 - 本次为提示式复测，没有执行部署、线上请求或业务代码修改；R2 smoke test 尚待真实环境执行。
 
+## 2026-09-08｜DELETE 重试前日志证据复述
+
+- 学习者独立列出通过 Request ID 找到对应请求日志，并查看 method、statusCode、duration、timestamp。核心关联方法正确。
+- Agent 补充还需核对 route、认证用户及数据库中目标 projectId 的存在和 owner，才能确认失败属于本次 smoke test 并安全决定重试；单独日志字段不能证明目标数据状态。
+- 本次没有执行部署、线上请求或代码修改；R2 工程退出仍待真实 smoke test。
+
 ## 2026-09-08｜DELETE 响应丢失与幂等复测
 
 - 学习者判断同一 DELETE 响应丢失后的重试“安全、幂等”。幂等判断正确；Agent 补充 HTTP 术语边界：DELETE 不是 safe method，因为它改变服务器状态，但定义上是幂等方法。
