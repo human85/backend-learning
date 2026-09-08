@@ -100,6 +100,13 @@ Hono 最小对照切片和 R1 可靠性实验已经完成。Mini SaaS 当前进�
 
 Mini SaaS 承担真实认证、业务、浏览器和部署；前端保持最小验证客户端。具体下一课以 [学习进度](../learning-progress.md) 为准。
 
+## 2026-09-08｜基础 CI
+
+- 新增 GitHub Actions 工作流，在 main push 与 pull request 上启动 PostgreSQL 17 服务，以 CI 环境变量配置 mini_saas_test；不读取或提交本机 .env.test.local。
+- 工作流依次锁定安装、格式检查、无 --fix 的 Mini SaaS lint、单元测试、测试 migration、HTTP e2e、build 和 git diff 检查。
+- 临时删除注册 DTO 的密码最小长度后，真实 HTTP e2e 从预期 400 变为 201 并失败；恢复实现后应用 e2e 重新通过，证明工作流覆盖该输入校验回归。
+- 本地按工作流顺序验证通过；GitHub runner 的首次运行和任何发布/线上结果尚未验证。Hono 集成、前端、浏览器和自动生产 migration 不在这个最小切片中。
+
 ## 2026-09-08｜R2 Request ID 与请求完成日志
 
 - 在共享应用配置中注册公共中间件，为每次请求生成服务端 UUID，通过 `X-Request-ID` 响应头和 JSON 日志关联；成功、HTTP 错误、未知异常和无响应体请求均覆盖。

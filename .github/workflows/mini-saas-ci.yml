@@ -1,0 +1,58 @@
+name: Mini SaaS CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mini_saas_test
+      SESSION_SECRET: ci-session-secret-with-at-least-32-bytes
+      FRONTEND_ORIGIN: http://localhost:5173
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: mini_saas_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d mini_saas_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.26.2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check formatting
+        run: pnpm exec prettier --check .
+      - name: Lint Mini SaaS without rewriting files
+        run: pnpm --filter @backend-learning/mini-saas exec eslint "{src,apps,libs,test}/**/*.ts"
+      - name: Run Mini SaaS unit tests
+        run: pnpm --filter @backend-learning/mini-saas test --runInBand
+      - name: Apply test migrations
+        run: pnpm --filter @backend-learning/mini-saas db:migration:run:test
+      - name: Run Mini SaaS HTTP end-to-end tests
+        run: pnpm --filter @backend-learning/mini-saas test:e2e --runInBand
+      - name: Build Mini SaaS
+        run: pnpm --filter @backend-learning/mini-saas build
+      - name: Verify checks did not rewrite tracked files
+        run: git diff --check && git diff --exit-code

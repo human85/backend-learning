@@ -469,3 +469,11 @@
 - 场景写作“创建项目时返回 409 Email is already registered”，学习者判断为业务规则拒绝，并优先检查请求日志；还指出该提示与项目创建不相符。该判断正确。
 - Agent 补充：409 是已知业务冲突的合理候选，不能直接推断为数据库不可用；应由 Request ID 在日志中核对 method、route 和 statusCode，再在浏览器 Network 查看实际接口与响应体。当前安全日志刻意不记录请求参数；/ready=200 只能证明独立 SELECT 1 探测成功，不能证明该业务调用正确。
 - 本次为问答与档案维护，没有新增实现或重跑测试。Readiness 的场景迁移已得到一次独立回答，仍不把先前需提示的其他边界升级为独立掌握；下一课转入基础 CI 的预测与实现。
+
+## 2026-09-08｜实现基础 CI 并验证 DTO 回归
+
+- 学习者预期删除注册 DTO 的密码最小长度应由单元测试阻止。Agent 补充：Service 单元测试不经过全局 ValidationPipe，HTTP e2e 才直接验证 DTO → Pipe → Controller 的拒绝路径。
+- 新增 Mini SaaS GitHub Actions：在 main push 与 pull request 触发；PostgreSQL 17 服务创建专属 mini_saas_test，工作流环境注入数据库连接、测试 Session Secret 和前端来源。步骤为 frozen install、格式、无自动修复 lint、46 个单元测试、migration、43 个 HTTP e2e、build 与无 diff 检查。
+- 不使用本机 .env.test.local。migration 从 CI 环境读取连接串，测试数据库生命周期只属于 job；工作流不会运行 Hono 清表集成、前端、浏览器或生产 migration。
+- 故障实验：临时移除 RegisterDto 的 @MinLength，/auth/register 的短密码测试实际返回 201，单文件应用 e2e 的 34 项中 1 项失败；恢复后 34 项通过。此前按完整 CI 顺序的本地验证也通过：格式、lint、46 个单元测试、无待执行 migration、43 个 HTTP e2e、build 与 diff 检查。
+- 学习者尚未独立解释 migration/e2e 顺序与 CI 环境隔离；GitHub runner 首次运行仍待推送后读取。下一步检查远端结果并做实现审查，R2 不标为完成。
