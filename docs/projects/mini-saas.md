@@ -8,7 +8,7 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 
 - 路径：API 位于 `apps/mini-saas/`，浏览器客户端位于 `apps/mini-saas-web/`
 - 技术栈：Node.js、TypeScript、NestJS 11、TypeORM、PostgreSQL 17、React 19、Vite 8、TanStack Query、Tailwind CSS、shadcn/ui、Jest、Vitest
-- 阶段：第一轮开发与生产闭环已完成；当前作为稳定样本，待 Hono R1 收尾后进入 R2 排错与基础交付课程
+- 阶段：第一轮开发与生产闭环已完成；当前作为稳定样本，进入 R2 排错与基础交付课程
 - 30 天里程碑：四周全部完成
 - 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；认证支持注册、登录、当前用户和注销；已登录用户只能 CRUD 自己的项目
 - 数据库与认证：注册和登录使用 Argon2id；PostgreSQL 保存服务端 Session；Project.ownerId 非空外键指向 User，所有查询按当前用户隔离
@@ -96,6 +96,6 @@ Mini SaaS 已满足第一轮“能够借助 AI 从需求走到线上，并能审
 
 ## 下一项应用课程
 
-Hono 最小对照切片已经完成，当前在该项目收尾 R1。Mini SaaS 的下一阶段是 R2：Request ID、结构化日志、数据库 Readiness 与基础 CI；之后 R3 通过一个陌生业务需求验证独立拆解能力。两个阶段均未开始，具体范围及退出条件见 [路线图](../roadmap.md)。
+Hono 最小对照切片和 R1 可靠性实验已经完成。Mini SaaS 当前进入 R2，第一课是 Request ID 与结构化日志，随后再做数据库 Readiness 与基础 CI；之后 R3 通过一个陌生业务需求验证独立拆解能力。具体范围及退出条件见 [路线图](../roadmap.md)。
 
 Mini SaaS 承担真实认证、业务、浏览器和部署；前端保持最小验证客户端。具体下一课以 [学习进度](../learning-progress.md) 为准。

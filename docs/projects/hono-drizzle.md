@@ -2,13 +2,13 @@
 
 ## 项目定位
 
-这个项目用与 Mini SaaS 相同的后端问题，对照观察 Hono 与 NestJS、Drizzle 与 TypeORM 的抽象差异。最小 Projects 对照切片已经完成；现在承载第二轮 R1 的幂等与 Outbox 可靠性实验。R1 达标后暂停扩展，返回 Mini SaaS，不复制完整认证、浏览器和部署架构。
+这个项目用与 Mini SaaS 相同的后端问题，对照观察 Hono 与 NestJS、Drizzle 与 TypeORM 的抽象差异。最小 Projects 对照切片及第二轮 R1 的幂等与 Outbox 可靠性实验已经完成；后续暂停扩展，返回 Mini SaaS，不复制完整认证、浏览器和部署架构。
 
 ## 当前状态
 
 - 路径：`apps/hono-drizzle/`
 - 技术栈：Node.js、TypeScript、Hono、Zod、Drizzle ORM、Drizzle Kit、node-postgres、Vitest
-- 阶段：最小 Drizzle + PostgreSQL 纵向切片已完成；幂等、Outbox 失败回滚、单 Worker 基础处理及重复投递去重已验证，R1 资源归属学习复测待完成
+- 阶段：最小 Drizzle + PostgreSQL 纵向切片及 R1 幂等/Outbox 工程与学习验收已完成，后续暂停扩展
 - 启动：从仓库根目录运行 `pnpm dev:hono`，默认监听 `3001`
 
 ## 已完成
@@ -29,7 +29,7 @@
 - 增加 `idempotency_records` 表和 Drizzle Repository：以 `(user_id, operation, idempotency_key)` 联合唯一索引保留一次逻辑请求，保存请求哈希、处理状态和原始响应；集成测试验证重放、错误复用、跨用户/跨操作隔离和并发 reservation。
 - 将幂等能力接入 `POST /projects`：认证和 Zod 校验通过后，带 `Idempotency-Key` 的请求在同一数据库事务中完成 reservation、项目插入和响应保存；重试返回保存的原始响应，同 key 不同 body 返回 `409`，并发请求只创建一个项目。
 - 新增 `DatabaseExecutor` 类型，让普通 Drizzle 连接和事务连接共用同一 Repository 接口；集成测试串行运行，避免多个测试文件同时清理同一个教学数据库。
-- 新增 `outbox_events` 表和 Repository；普通创建与幂等创建都通过项目创建 Service，在同一个事务中写入 `project.created` 的 `pending` 事件。当前只证明可靠落库，尚未实现事件 Worker。
+- 新增 `outbox_events` 表和 Repository；普通创建与幂等创建都通过项目创建 Service，在同一个事务中写入 `project.created` 的 `pending` 事件，再由单 Worker 处理。
 - 在隔离集成数据库中用临时 PostgreSQL trigger 让 Outbox 插入失败；真实集成测试证明普通创建不会留下项目或事件，幂等创建不会留下项目、事件或 reservation。移除故障后复用同一幂等键可成功创建一次；identity 序列不因回滚倒退，因此测试只验证业务结果，不要求 ID 连续。
 - 新增单 Worker：按 `available_at` 和 ID 顺序读取 pending 事件，成功后标记 `processed`；接收端失败时增加 `attempts`、保存错误并重新安排 pending，达到 3 次后保留 `failed` 记录。集成测试验证重启新 Worker 后仍能继续处理 pending 事件。
 - 新增重复投递集成实验：真实数据库阻断 `processed` 确认，使外部模拟接收端成功后事件仍为 pending；重启后同一 `outbox_events.id` 再次投递，调用两次但去重后的模拟副作用只有一次，最终事件标记为 `processed`。
@@ -55,16 +55,17 @@
 - `idempotency_records` 当前没有用户外键或 status CHECK 约束；联合唯一索引保证同一用户、同一操作、同一 key 不会出现两条记录，状态转换由应用层控制。
 - HTTP 创建将 reservation、项目、Outbox 和 completed 响应放在同一事务；该事务最终回滚时不会留下本次已提交的 processing。Repository 原语单独提交 reservation 时可能留下 processing，不能据此认定 HTTP 创建也需要同样的超时接管。
 - completed 记录的保留期限与清理尚未设计；清理会改变迟到重试的语义，应独立决定重试窗口，不能与 processing 恢复混为一谈。
-- `outbox_events` 保存事件类型、聚合 ID、JSON 文本 payload、处理状态、尝试次数和错误信息；当前没有消费者、锁领取、重试退避或死信队列。
+- `outbox_events` 保存事件类型、聚合 ID、JSON 文本 payload、处理状态、尝试次数和错误信息；当前只有教学用单 Worker，没有多实例领取锁、生产级重试退避或死信队列。
 
 ## 实现与验证注意点
 
 - 当前 HTTP 创建使用事务编排；底层 `ProjectsService.create` 仍可直接插入项目。未来修改创建流程时审查是否需要收敛业务入口，避免绕过事件规则；这是待审查的维护点，不是已确认的 HTTP 缺陷，也未在本次重构。
 - 现有集成用例包含成功落库、owner 过滤、重放、内容冲突、并发、Outbox 写入失败后的整体回滚和恢复重试，以及 Worker 成功、重试、失败上限、重启继续处理和重复投递去重；当前共 15 项数据库集成测试通过。当前 Worker 没有领取锁，只适用于单 Worker 教学实验，不代表多实例安全或恰好一次投递。
 - 集成测试会清空共享教学数据库，因此 `test:integration` 脚本显式使用 `--no-file-parallelism`；仅依赖 Vitest 配置中的并行选项曾出现跨文件清理竞态，已通过一次故障复现确认并修正。
+- R1 资源归属复测已确认可信 `userId` 来自 Session，Repository 必须按 ownerId 过滤，且 mock 不能替代真实 SQL 归属测试；后续不在本项目新增课程。
 - `pnpm test` 不执行这里的数据库集成测试；使用 `pnpm --filter @backend-learning/hono-drizzle test:integration`。
 - 当前集成测试加载 `DATABASE_URL`，会清空 projects、idempotency_records、outbox_events。运行前必须确认是可清理的隔离测试库；不能因 `.env` 已存在就直接运行。
 
 ## 后续安排
 
-下一课完成 R1 资源归属学习复测后再回到 Mini SaaS R2，范围、退出条件及暂缓内容见 [学习进度](../learning-progress.md) 和 [路线图](../roadmap.md)。当前固定教学身份和单库实验不构成生产认证或生产可靠性承诺。
+R1 已完成，下一课回到 Mini SaaS 的 R2 Request ID 与结构化日志，范围、退出条件及暂缓内容见 [学习进度](../learning-progress.md) 和 [路线图](../roadmap.md)。当前固定教学身份和单库实验不构成生产认证或生产可靠性承诺。
