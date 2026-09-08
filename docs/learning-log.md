@@ -483,3 +483,9 @@
 - GitHub runner 的前置安装、格式、lint、单元测试和 test migration 全部通过；HTTP e2e 失败在 readiness.e2e-spec.ts 加载阶段，ENOENT 指向未提交的 .env.test.local。
 - 原因是测试虽然写了 DATABASE_URL 优先，却在选择前无条件 readFileSync 本机文件。修复为仅在环境变量缺失时读取本地回退文件；本地 Readiness e2e 3 项重新通过。该问题与 PostgreSQL 连通性无关，属于测试环境配置边界。
 - 修复提交将触发第二次 GitHub Actions 运行；通过前不把基础 CI 标为远端验证成功。学习者后续需解释为什么 CI 使用显式环境变量而非本机 .env.test.local。
+
+## 2026-09-08｜GitHub Actions 隔离 CI 验收
+
+- 修复后 [GitHub Actions run 34202748980](https://github.com/human85/backend-learning/actions/runs/34202748980) 用时 59 秒完整通过：PostgreSQL service 就绪、依赖锁定安装、格式、无修复 lint、46 个单元测试、测试 migration、43 个 HTTP e2e、build 与无 diff 检查均为绿色。
+- 首次失败和修复共同证明 CI 的价值：本地可用的 .env.test.local 不是可提交的 CI 契约；显式 job 环境变量才让新 runner 可重复执行测试。通过只证明当前选定检查在隔离 runner 可执行，不取代浏览器或生产验收。
+- 工程验收：R2 基础 CI 的最小范围完成且有远端证据。学习者尚未独立解释 migration 与 e2e 的顺序，留作实现审查；R2 还需根据剩余退出条件安排发布验收，不标为完成。

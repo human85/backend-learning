@@ -105,7 +105,7 @@ Mini SaaS 承担真实认证、业务、浏览器和部署；前端保持最小�
 - 新增 GitHub Actions 工作流，在 main push 与 pull request 上启动 PostgreSQL 17 服务，以 CI 环境变量配置 mini_saas_test；不读取或提交本机 .env.test.local。
 - 工作流依次锁定安装、格式检查、无 --fix 的 Mini SaaS lint、单元测试、测试 migration、HTTP e2e、build 和 git diff 检查。
 - 临时删除注册 DTO 的密码最小长度后，真实 HTTP e2e 从预期 400 变为 201 并失败；恢复实现后应用 e2e 重新通过，证明工作流覆盖该输入校验回归。
-- 本地按工作流顺序验证通过。GitHub runner 首次运行暴露 Readiness e2e 无条件读取未提交 .env.test.local；已改为 CI DATABASE_URL 优先、本地文件回退，修复后远端运行待验证。Hono 集成、前端、浏览器和自动生产 migration 不在这个最小切片中。
+- 本地按工作流顺序验证通过。GitHub runner 首次运行暴露 Readiness e2e 无条件读取未提交 .env.test.local；改为 CI DATABASE_URL 优先、本地文件回退后，[远端 run 34202748980](https://github.com/human85/backend-learning/actions/runs/34202748980) 完整通过。Hono 集成、前端、浏览器和自动生产 migration 不在这个最小切片中。
 
 ## 2026-09-08｜R2 Request ID 与请求完成日志
 
