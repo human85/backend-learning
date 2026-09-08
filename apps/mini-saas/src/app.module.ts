@@ -8,6 +8,8 @@ import { environmentValidationSchema } from './config/environment.validation';
 import { createDatabaseOptions } from './database/database-options';
 import { ProjectsModule } from './projects/projects.module';
 import { SessionModule } from './session/session.module';
+import { ReadinessController } from './readiness/readiness.controller';
+import { ReadinessService } from './readiness/readiness.service';
 
 @Module({
   imports: [
@@ -29,7 +31,7 @@ import { SessionModule } from './session/session.module';
     AuthModule,
     ProjectsModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController, ReadinessController],
+  providers: [AppService, ReadinessService],
 })
 export class AppModule {}

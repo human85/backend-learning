@@ -446,3 +446,14 @@
 - 本轮日志课程完成反馈，但完整筛选条件、Session 与幂等键职责仍需间隔复测，不把补充内容记为独立掌握。
 - 本次仅问答与档案更新，没有修改业务代码或重新运行业务测试；文档格式与 diff 检查通过。
 - 下一课进入数据库 Readiness 的现有代码阅读与故障预测，回答前不实现；R2 阶段未完成。
+
+## 2026-09-08｜实现并验证数据库 Readiness
+
+- 学习者正确判断 HTTP 可响应不代表数据库连接正常，并提出最大等待时长；最初认为失败返回 500，Agent 补充 503 更适合表示未就绪，以及只能从静态 health 推断该路径能响应，不能证明整个 Service 正常。
+- 学习者正确回答 Promise.race 不会自动取消底层查询，反复检查会增加数据库压力。连接与查询分别设超时、失败连接销毁、并发共享探测由 Agent 实现并解释，尚未独立审查复述。
+- 新增 /ready 和专用 max=1 pg 池：SELECT 1 成功返回 200，连接或查询失败返回 503；连接等待 1000ms、服务端 statement_timeout 500ms、客户端 query_timeout 750ms，失败连接 release(true)，应用关闭时 pool.end()。并发检查共享在途 Promise，避免池等待队列随请求增长。
+- 保留 /health；/ready 使用 no-store 并记录与 Request ID 关联的安全 database_probe_failed 分类，不输出密码、连接 URL 或原始异常。显式声明 @types/pg 开发依赖。
+- 故障实验只使用 localhost 的 mini_saas_test 和测试专属 TCP 代理，没有停止共享 PostgreSQL：先成功，再阻断握手，两轮各 8 个并发检查返回 503，代理连接清零，health 仍为 200，恢复后 ready 回到 200。已有连接停止转发时，查询等待超时后销毁连接并可恢复。真实 pg_sleep(3) 被 500ms statement_timeout 取消，得到 PostgreSQL 57014，销毁客户端后连接池恢复可用。
+- 临时把失败连接改为复用，资源边界单元测试失败；恢复后通过。这些故障操作为 Agent 演示，不计为学习者独立测评。
+- 工程验证：46 个单元测试、43 个 HTTP e2e、build、变更文件 ESLint、Prettier 和 diff 检查通过。数据库 e2e 使用本机 mini_saas_test；未运行 Hono 清表测试，未重新部署或调整平台探测配置。
+- 边界：专用探测池不反映业务池饱和、schema 或写权限；探测预算约为连接 1000ms 加查询 750ms及调度开销；TypeORM 启动建连行为未改变。下一步审查清理与并发边界，再迁移判断 ready 200 不能证明哪些业务能力；R2 未完成。

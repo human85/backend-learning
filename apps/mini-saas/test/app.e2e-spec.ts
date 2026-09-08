@@ -347,6 +347,14 @@ describe('AppController (e2e)', () => {
       .expect('Hello World!');
   });
 
+  it('/ready (GET) checks PostgreSQL through the real application wiring', () => {
+    return request(app.getHttpServer())
+      .get('/ready')
+      .expect(200)
+      .expect('Cache-Control', 'no-store')
+      .expect({ status: 'ok' });
+  });
+
   it('/health (GET)', () => {
     return request(app.getHttpServer())
       .get('/health')

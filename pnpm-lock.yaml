@@ -148,6 +148,9 @@ importers:
       '@types/node':
         specifier: ^24.0.0
         version: 24.13.3
+      '@types/pg':
+        specifier: ^8.21.0
+        version: 8.21.0
       '@types/supertest':
         specifier: ^7.0.0
         version: 7.2.1
@@ -2006,9 +2009,6 @@ packages:
   '@types/node@26.2.0':
     resolution: {integrity: sha512-5IviulTZeRNp2vAJ514cc/HUlY5nZ9fCbq9DMyC52BrhFZACo3nI0R7qBxhQmo/d27NFe96ur/b7Wwxklda+kg==}
 
-  '@types/pg@8.20.0':
-    resolution: {integrity: sha512-bEPFOaMAHTEP1EzpvHTbmwR8UsFyHSKsRisLIHVMXnpNefSbGA1bD6CVy+qKjGSqmZqNqBDV2azOBo8TgkcVow==}
-
   '@types/pg@8.21.0':
     resolution: {integrity: sha512-AYdtudzabjLZgVgRZmAnU8bAnVUXzuJX2IYHeSIiIHm68olD+LgQYCGWdtcNYnP0uq9c4S4NibVG3Ni7VbKW7Q==}
 
@@ -3129,6 +3129,7 @@ packages:
   eslint@9.39.5:
     resolution: {integrity: sha512-DgZS62aPLXKlnxILS/AYCoRvHaZeXceIzlXPkkGGzJWSow1aEk0lbTlxUSlyjC8jcaKxAdOnTDz+o1JFSBsyjw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -7047,7 +7048,7 @@ snapshots:
     dependencies:
       '@types/express': 5.0.6
       '@types/express-session': 1.19.0
-      '@types/pg': 8.20.0
+      '@types/pg': 8.21.0
 
   '@types/connect@3.4.38':
     dependencies:
@@ -7114,12 +7115,6 @@ snapshots:
   '@types/node@26.2.0':
     dependencies:
       undici-types: 8.3.0
-
-  '@types/pg@8.20.0':
-    dependencies:
-      '@types/node': 24.13.3
-      pg-protocol: 1.15.0
-      pg-types: 2.2.0
 
   '@types/pg@8.21.0':
     dependencies:

@@ -13,6 +13,7 @@ type RequestLog = {
   route: string;
   statusCode: number;
   durationMs: number;
+  failureKind?: 'database_probe_failed';
 };
 
 export function writeRequestLog(entry: RequestLog): void {
@@ -42,6 +43,9 @@ export function createRequestLoggingMiddleware(
         route: typeof route?.path === 'string' ? route.path : '<unmatched>',
         statusCode,
         durationMs: Math.round((performance.now() - startedAt) * 100) / 100,
+        ...(response.locals.readinessFailure === 'database_probe_failed'
+          ? { failureKind: 'database_probe_failed' as const }
+          : {}),
       });
     });
     next();
