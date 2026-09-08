@@ -15,3 +15,5 @@
 实现见 [mini-saas-ci.yml](../../.github/workflows/mini-saas-ci.yml)。工作流动作的版本选择参考 [actions/checkout](https://github.com/actions/checkout/releases)、[actions/setup-node](https://github.com/actions/setup-node/releases) 与 [pnpm/action-setup](https://github.com/pnpm/action-setup/releases)。首次 GitHub runner 成功只证明该环境可重复执行这些检查，不能取代发布后验收。
 
 生产 smoke test 不应复用固定 `test@example.com` 或 `temp` 项目名。使用带唯一标记的临时邮箱和项目名，在 `finally` 中删除并核对数据库状态；删除失败时保留 Request ID 和失败响应，先查日志与归属/约束，再决定补偿动作。CI 的清表 e2e 与生产 smoke test 是两种不同的风险边界。
+
+当前 Mini SaaS 的清理约束是：先删除项目，再销毁 Session，最后删除用户。项目外键使用 `ON DELETE RESTRICT`；sessions 表把用户信息存于 JSON，没有数据库外键，因此先删用户可能留下逻辑孤儿 Session。清理步骤应互相独立并汇总失败，而不是因第一步异常直接跳过其余步骤。
