@@ -489,3 +489,9 @@
 - 修复后 [GitHub Actions run 34202748980](https://github.com/human85/backend-learning/actions/runs/34202748980) 用时 59 秒完整通过：PostgreSQL service 就绪、依赖锁定安装、格式、无修复 lint、46 个单元测试、测试 migration、43 个 HTTP e2e、build 与无 diff 检查均为绿色。
 - 首次失败和修复共同证明 CI 的价值：本地可用的 .env.test.local 不是可提交的 CI 契约；显式 job 环境变量才让新 runner 可重复执行测试。通过只证明当前选定检查在隔离 runner 可执行，不取代浏览器或生产验收。
 - 工程验收：R2 基础 CI 的最小范围完成且有远端证据。学习者尚未独立解释 migration 与 e2e 的顺序，留作实现审查；R2 还需根据剩余退出条件安排发布验收，不标为完成。
+
+## 2026-09-08｜基础 CI migration 与环境隔离审查
+
+- 学习者独立回答：不先跑 migration，数据库仍是旧 schema，HTTP e2e 没有意义；CI 通常在云端，不能读取本机环境变量。两点均正确。
+- Agent 补充：CI 常从空的临时数据库开始，migration 建立代码需要的当前 schema，受控 migration 也可能准备必要数据；e2e 仍负责验证 HTTP、输入、权限和业务行为。工作流显式注入 DATABASE_URL、Session Secret 与前端来源，不复制 `.env.test.local`。
+- 本次完成基础 CI 实现审查，没有新增代码；格式、diff 与上一条远端 run 证据沿用。R2 阶段退出判断和发布后验收仍未完成。
