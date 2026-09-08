@@ -49,8 +49,9 @@
 - Readiness 迁移证据：学习者将 409 Email is already registered 判断为业务规则拒绝，并优先查看请求日志；能指出提示与项目创建不符。Agent 补充日志不记录请求参数，需用 Request ID 核对 method、route、statusCode，再查看浏览器 Network 的实际响应；/ready=200 只能排除本次独立数据库探测失败。
 - 当前课：基础 CI。工作流已在 push 与 pull request 触发，使用独立 PostgreSQL 17 服务和 CI 注入的测试环境变量；依次执行锁文件安装、格式、只读 lint、单元测试、migration、HTTP e2e、build 与无重写检查。
 - 故障证据：学习者最初选择单元测试；Agent 补充 DTO 校验须由 HTTP e2e 覆盖。临时删除 RegisterDto 的密码最小长度后，/auth/register 短密码用例实际得到 201 而非预期 400，34 项应用 e2e 中 1 项失败；恢复后 34 项重新通过。
-- 当前边界：工作流尚未在 GitHub runner 上完成首次运行；它不运行 Hono 会清表的集成测试、前端测试、浏览器/线上验收或自动生产 migration。CI 的测试数据库只用于该 job，不能代替部署验证。
-- 下一步：读取远端 CI 首次运行结果，并让学习者审查“为什么 migration 必须在 e2e 前、为什么 CI 不应使用本机 .env.test.local”；随后根据 R2 剩余退出条件决定是否进入发布验收。R2 阶段尚未完成。
+- 远端首跑证据：GitHub runner 在 HTTP e2e 阶段失败，原因是 readiness.e2e-spec.ts 在读取 CI 的 DATABASE_URL 前无条件打开未提交的 .env.test.local；已改为环境变量优先、文件仅作本地回退，本地 readiness e2e 通过，修复后的远端运行待完成。
+- 当前边界：它不运行 Hono 会清表的集成测试、前端测试、浏览器/线上验收或自动生产 migration。CI 的测试数据库只用于该 job，不能代替部署验证。
+- 下一步：读取修复后的远端 CI 结果，并让学习者审查“为什么 migration 必须在 e2e 前、为什么 CI 不应使用本机 .env.test.local”；随后根据 R2 剩余退出条件决定是否进入发布验收。R2 阶段尚未完成。
 
 ## 当前复测队列
 

@@ -17,8 +17,12 @@ import {
 } from '../src/readiness/readiness.service';
 
 // Read-only SQL only. Faults affect this test's TCP proxy, never PostgreSQL itself.
-const values = parse(readFileSync('.env.test.local'));
-const databaseUrl = process.env.DATABASE_URL ?? values.DATABASE_URL;
+const databaseUrl =
+  process.env.DATABASE_URL ??
+  parse(readFileSync('.env.test.local')).DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL is required for readiness experiments');
+}
 const target = new URL(databaseUrl);
 if (
   !['localhost', '127.0.0.1'].includes(target.hostname) ||

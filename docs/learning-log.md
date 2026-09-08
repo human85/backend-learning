@@ -477,3 +477,9 @@
 - 不使用本机 .env.test.local。migration 从 CI 环境读取连接串，测试数据库生命周期只属于 job；工作流不会运行 Hono 清表集成、前端、浏览器或生产 migration。
 - 故障实验：临时移除 RegisterDto 的 @MinLength，/auth/register 的短密码测试实际返回 201，单文件应用 e2e 的 34 项中 1 项失败；恢复后 34 项通过。此前按完整 CI 顺序的本地验证也通过：格式、lint、46 个单元测试、无待执行 migration、43 个 HTTP e2e、build 与 diff 检查。
 - 学习者尚未独立解释 migration/e2e 顺序与 CI 环境隔离；GitHub runner 首次运行仍待推送后读取。下一步检查远端结果并做实现审查，R2 不标为完成。
+
+## 2026-09-08｜CI 首次运行暴露本机配置依赖
+
+- GitHub runner 的前置安装、格式、lint、单元测试和 test migration 全部通过；HTTP e2e 失败在 readiness.e2e-spec.ts 加载阶段，ENOENT 指向未提交的 .env.test.local。
+- 原因是测试虽然写了 DATABASE_URL 优先，却在选择前无条件 readFileSync 本机文件。修复为仅在环境变量缺失时读取本地回退文件；本地 Readiness e2e 3 项重新通过。该问题与 PostgreSQL 连通性无关，属于测试环境配置边界。
+- 修复提交将触发第二次 GitHub Actions 运行；通过前不把基础 CI 标为远端验证成功。学习者后续需解释为什么 CI 使用显式环境变量而非本机 .env.test.local。
