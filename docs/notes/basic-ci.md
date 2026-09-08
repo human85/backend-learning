@@ -13,3 +13,5 @@
 - 当前范围只覆盖 Mini SaaS 后端。Hono 的集成测试会清理教学表，前端、浏览器和生产部署各有不同的隔离与验收需要，未因为新增 CI 自动获得覆盖。
 
 实现见 [mini-saas-ci.yml](../../.github/workflows/mini-saas-ci.yml)。工作流动作的版本选择参考 [actions/checkout](https://github.com/actions/checkout/releases)、[actions/setup-node](https://github.com/actions/setup-node/releases) 与 [pnpm/action-setup](https://github.com/pnpm/action-setup/releases)。首次 GitHub runner 成功只证明该环境可重复执行这些检查，不能取代发布后验收。
+
+生产 smoke test 不应复用固定 `test@example.com` 或 `temp` 项目名。使用带唯一标记的临时邮箱和项目名，在 `finally` 中删除并核对数据库状态；删除失败时保留 Request ID 和失败响应，先查日志与归属/约束，再决定补偿动作。CI 的清表 e2e 与生产 smoke test 是两种不同的风险边界。
