@@ -621,3 +621,9 @@
 - 场景是 `/health`、`/ready` 和 `curl` 登录正常，但浏览器 CORS 预检失败。学习者判断不能标记 smoke 通过，因为 CORS 配置有问题、目标浏览器链路不可用；该结论正确。
 - Agent 补充：`curl` 成功只能证明 API 直接 HTTP 路径可响应，不能证明前端浏览器的跨源凭证请求可用。应检查 `FRONTEND_ORIGIN`、预检允许的方法和请求头、`Access-Control-Allow-Credentials` 及实际响应是否暴露必要的 `X-Request-ID`。
 - 本次为预测复测，没有部署、线上请求或代码修改；R2 工程退出仍待生产 smoke test。
+
+## 2026-09-09｜CORS 凭证边界复测
+
+- 场景是前端请求带 `credentials`，服务端返回 `Access-Control-Allow-Origin: *`。学习者判断不能通过，因为通配符配置时浏览器不能携带 Cookie；该回答正确抓住凭证请求与通配符来源不兼容的约束。
+- Agent 补充：服务端应返回与允许列表匹配的明确 Origin，并设置 `Access-Control-Allow-Credentials: true`；不能用 `*` 替代来源白名单。还需在真实浏览器中验证预检和实际请求，而不是只看 API 直连。
+- 本次为预测复测，没有部署、线上请求或代码修改；R2 工程退出仍待生产 smoke test。
