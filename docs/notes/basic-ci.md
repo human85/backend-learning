@@ -39,3 +39,5 @@ DELETE 的 HTTP 幂等性不要求每次响应码相同：本项目首次删除�
 CI 和本地测试通过不等于 R2 完成。仍需在目标部署版本上执行真实环境 smoke，核对 `/health`、`/ready`、Request ID 日志及项目、用户和 Session 的数据库清理状态。
 
 配置验证也要按配置项分层：禁止打印 `DATABASE_URL`、`SESSION_SECRET` 等原文；数据库建连或 readiness 只证明 `DATABASE_URL` 的当前连通和认证，Session 与 CORS 配置要分别用登录恢复、Cookie 属性和预检响应验证。
+
+必需配置缺失或不合规时应 fail fast：在应用监听端口前退出，只输出安全的配置项错误。让服务启动后再由登录接口返回 500 会浪费资源，也会把确定性的部署配置错误伪装成运行期业务故障。
