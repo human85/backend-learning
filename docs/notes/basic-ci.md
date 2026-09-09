@@ -45,3 +45,5 @@ CI 和本地测试通过不等于 R2 完成。仍需在目标部署版本上执�
 浏览器 CORS 预检失败时不能判定线上 smoke 通过。即使 `curl` 能访问 API，仍需验证前端来源、预检方法/请求头、凭证响应头和实际 Cookie 请求；这是浏览器集成链路的可用性证据。
 
 带 `credentials` 的跨源请求不能搭配 `Access-Control-Allow-Origin: *`。应匹配明确的允许来源，并返回 `Access-Control-Allow-Credentials: true`，再用浏览器验证 Cookie 是否实际发送。
+
+允许来源和响应头暴露是两层配置：`Access-Control-Allow-Origin` 决定请求是否获准，`Access-Control-Expose-Headers: X-Request-ID` 决定前端脚本能否读取该响应头。响应中存在 Request ID 不代表 JavaScript 一定可见。

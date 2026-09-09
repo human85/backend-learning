@@ -627,3 +627,9 @@
 - 场景是前端请求带 `credentials`，服务端返回 `Access-Control-Allow-Origin: *`。学习者判断不能通过，因为通配符配置时浏览器不能携带 Cookie；该回答正确抓住凭证请求与通配符来源不兼容的约束。
 - Agent 补充：服务端应返回与允许列表匹配的明确 Origin，并设置 `Access-Control-Allow-Credentials: true`；不能用 `*` 替代来源白名单。还需在真实浏览器中验证预检和实际请求，而不是只看 API 直连。
 - 本次为预测复测，没有部署、线上请求或代码修改；R2 工程退出仍待生产 smoke test。
+
+## 2026-09-09｜CORS 响应头暴露边界复测
+
+- 场景是服务端响应中已有 `X-Request-ID`，但前端 JavaScript 读取不到。学习者回答“允许的域名”；这能影响请求是否被浏览器接受，但不是已有响应头对脚本不可见的直接配置。
+- Agent 补充：请求来源由 `Access-Control-Allow-Origin` 控制，脚本读取非简单响应头由 `Access-Control-Expose-Headers` 控制，因此要显式暴露 `X-Request-ID`。请求成功和脚本能读到响应头是两个独立条件。
+- 本次为提示式复测，CORS 响应头暴露边界需后续间隔复查；没有部署、线上请求或代码修改，R2 工程退出仍待生产 smoke test。
