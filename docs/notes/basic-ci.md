@@ -37,3 +37,5 @@ DELETE 的 HTTP 幂等性不要求每次响应码相同：本项目首次删除�
 修复 DELETE 或其他流程节点后，先执行受影响的单元/e2e，再重新走完整 smoke。局部重试只能验证单个请求，完整回归才能发现对认证、Session、归属条件和清理步骤的副作用。
 
 CI 和本地测试通过不等于 R2 完成。仍需在目标部署版本上执行真实环境 smoke，核对 `/health`、`/ready`、Request ID 日志及项目、用户和 Session 的数据库清理状态。
+
+配置验证也要按配置项分层：禁止打印 `DATABASE_URL`、`SESSION_SECRET` 等原文；数据库建连或 readiness 只证明 `DATABASE_URL` 的当前连通和认证，Session 与 CORS 配置要分别用登录恢复、Cookie 属性和预检响应验证。
