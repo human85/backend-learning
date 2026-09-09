@@ -51,3 +51,5 @@ CI 和本地测试通过不等于 R2 完成。仍需在目标部署版本上执�
 未暴露 `X-Request-ID` 时，浏览器请求仍可能成功，服务端也会保留日志编号；只是前端代码无法读取并把该编号反馈给排查人员，属于诊断关联能力缺失而非请求处理失败。
 
 服务端返回的响应头使用 `Access-Control-Expose-Headers` 暴露；`Access-Control-Allow-Headers` 只用于允许客户端在请求中发送指定请求头，两者不要混用。
+
+`HttpOnly` Cookie 不能被前端 JavaScript 读取，但浏览器仍可在凭证请求中自动发送。实际发送还要满足域名、Path、`SameSite`、`Secure`、`credentials` 和 CORS 条件。

@@ -644,3 +644,9 @@
 
 - 场景是让前端 JavaScript 读取服务端返回的 `X-Request-ID`。学习者正确选择 `Access-Control-Expose-Headers`，并未将它与允许客户端发送请求头的 `Access-Control-Allow-Headers` 混淆。
 - 本次为独立复测，响应头配置边界通过；没有部署、线上请求或代码修改，R2 工程退出仍待生产 smoke test。
+
+## 2026-09-09｜Session Cookie 行为复测
+
+- 场景是 Session Cookie 设置了 `HttpOnly`，请求使用 `credentials: 'include'`。学习者判断浏览器仍会自动携带 Cookie；该回答正确区分 JavaScript 读取权限与浏览器网络发送行为。
+- Agent 补充：是否实际发送还受 Cookie 的域名、路径、`SameSite`、`Secure`、请求凭证和 CORS 条件影响；`HttpOnly` 本身只阻止脚本读取或修改。
+- 本次为独立预测复测，Session Cookie 边界通过；没有部署、线上请求或代码修改，R2 工程退出仍待生产 smoke test。
