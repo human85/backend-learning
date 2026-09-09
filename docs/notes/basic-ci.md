@@ -49,3 +49,5 @@ CI 和本地测试通过不等于 R2 完成。仍需在目标部署版本上执�
 允许来源和响应头暴露是两层配置：`Access-Control-Allow-Origin` 决定请求是否获准，`Access-Control-Expose-Headers: X-Request-ID` 决定前端脚本能否读取该响应头。响应中存在 Request ID 不代表 JavaScript 一定可见。
 
 未暴露 `X-Request-ID` 时，浏览器请求仍可能成功，服务端也会保留日志编号；只是前端代码无法读取并把该编号反馈给排查人员，属于诊断关联能力缺失而非请求处理失败。
+
+服务端返回的响应头使用 `Access-Control-Expose-Headers` 暴露；`Access-Control-Allow-Headers` 只用于允许客户端在请求中发送指定请求头，两者不要混用。
