@@ -124,7 +124,7 @@ Mini SaaS 承担真实认证、业务、浏览器和部署；前端保持最小�
 
 ## 2026-09-10｜R2 部署后生产 smoke
 
-- Render 控制台确认 API 服务 `backend-learning-mini-sass-api` 和静态站点 `backend-learning-mini-saas-web` 的最新成功部署均为 `19da815`；静态站点 Rewrite 为 `/api/*` → `https://backend-learning-mini-sass-api.onrender.com/*`，根路径回退到 `/index.html`。
+- Render 控制台确认本次业务 smoke 的目标版本是 API 服务 `backend-learning-mini-sass-api` 和静态站点 `backend-learning-mini-saas-web` 的 `19da815`；随后仅变更文档的 `611484b` 已在两项服务成功自动部署。静态站点 Rewrite 为 `/api/*` → `https://backend-learning-mini-sass-api.onrender.com/*`，根路径回退到 `/index.html`。
 - 通过前端公网域名的 `/api` 完成 `/health`、`/ready`、未登录 `401`、注册 `201`、登录 `200`、认证用户读取、项目创建/列表/读取、删除 `204`、删除后读取 `404`、注销 `204` 和注销后 `401`。登录响应核对了 `Secure`、`HttpOnly`、`SameSite=Lax` 和 `Path=/`。
 - 每一步响应都有独立 `X-Request-ID`；Render 日志按 Request ID 核对到 `method`、路由模板、`statusCode`、`durationMs` 和 `timestamp`，日志没有出现密码、Cookie 或原始请求体。
 - 临时用户和项目使用唯一标记。API 删除项目、注销 Session 后，通过 Neon 定向查询确认项目、Session 和用户均为 0；用户删除使用受控数据库管理操作，因为应用没有公开删除用户接口。
