@@ -679,3 +679,9 @@
 - 学习者询问 `trust proxy` 的含义和配置位置，说明此前只听到名词，尚未形成可测评理解，因此不将前一题计入答题结果。
 - 对照当前代码：`apps/mini-saas/src/app.config.ts` 的 `configureApp()` 在生产环境取得 Express 实例并执行 `set('trust proxy', 1)`；`apps/mini-saas/src/session/session.middleware.ts` 在生产设置 `cookie.secure: true`。前者让应用相信一层预期代理提供的外部协议元数据，后者要求浏览器只通过 HTTPS 发送 Session Cookie。
 - 本次为概念补课，没有独立回答、部署或线上请求；后续先复述“谁设置转发头、应用为何信任一层代理”，再复测信任范围风险，R2 工程退出仍待生产 smoke test。
+
+## 2026-09-10｜`trust proxy` 信任范围复测
+
+- 学习者正确回答 `trust proxy = 1` 表示信任前面一层代理，但认为即使没有反向代理也能保留该设置；前半通过，后半不正确。
+- Agent 补充：`trust proxy` 必须与真实网络拓扑匹配。若应用直连公网，就不应信任客户端提供的 `X-Forwarded-*` 头；只有平台明确提供一层受信任代理时，当前 `1` 才有对应依据。该设置服务于协议识别，不是 Cookie 传输开关。
+- 本次为部分独立复测，信任范围风险需后续间隔复查；没有部署、线上请求或代码修改，R2 工程退出仍待生产 smoke test。
