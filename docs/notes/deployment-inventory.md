@@ -2,7 +2,7 @@
 
 > 这份清单记录可公开的部署定位信息，不记录密码、连接串、Session Secret 或其他密钥。状态和 commit 会变化；每次 smoke test 前都要重新核对 Render 控制台。
 
-## 当前已核实信息
+## 2026-09-10 核对快照
 
 核对日期：2026-09-10（Asia/Shanghai）
 
@@ -16,7 +16,7 @@
 | 前端服务                   | `backend-learning-mini-saas-web`（Service ID：`srv-d9fk44f41pts73ecmnng`） |
 | 前端地址                   | `https://backend-learning-mini-saas-web.onrender.com`                      |
 | 分支                       | `main`                                                                     |
-| 当前线上 commit            | `d76f053`（本次仅为文档变更）                                              |
+| 核对时线上 commit          | `d76f053`（本次仅为文档变更）                                              |
 | 本轮业务 smoke 目标 commit | `19da815`                                                                  |
 
 服务名中的拼写必须逐字符核对：API 使用 `sass`，前端使用 `saas`。不要把两个地址互换，也不要把相近但不存在的主机名当成 API。
