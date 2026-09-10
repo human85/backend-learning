@@ -57,3 +57,5 @@ CI 和本地测试通过不等于 R2 完成。仍需在目标部署版本上执�
 生产环境的 `Secure` Cookie 只应通过 HTTPS 发送；HTTP smoke 可能出现登录响应成功但后续 `/auth/me` 为 `401`。反向代理必须正确传递 HTTPS 协议，应用也要按预期信任代理层。
 
 反向代理信任不会放宽浏览器发送 `Secure` Cookie 的规则。它只让应用从受信任的 `X-Forwarded-Proto` 识别外部 HTTPS，以便设置 Cookie 和执行安全策略；信任范围过宽会让客户端伪造转发头，造成安全判断错误。
+
+基础链路：浏览器通过公网 HTTPS 访问反向代理，代理可以终止 TLS，再用内部 HTTP 转发到 Nest。`X-Forwarded-Proto` 是代理传给后端的外部协议元数据；`trust proxy` 决定应用是否接受它。它不让浏览器在普通 HTTP 下发送 `Secure` Cookie。
