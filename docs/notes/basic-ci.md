@@ -61,3 +61,5 @@ CI 和本地测试通过不等于 R2 完成。仍需在目标部署版本上执�
 基础链路：浏览器通过公网 HTTPS 访问反向代理，代理可以终止 TLS，再用内部 HTTP 转发到 Nest。`X-Forwarded-Proto` 是代理传给后端的外部协议元数据；`trust proxy` 决定应用是否接受它。它不让浏览器在普通 HTTP 下发送 `Secure` Cookie。
 
 因此，Nest 收到内部 HTTP 时，`X-Forwarded-Proto: https` 仍可表示浏览器到代理的外部链路是 HTTPS；这两段连接的协议不要混为一谈。
+
+当前项目在 `configureApp()` 中仅对生产 Express 实例设置 `trust proxy = 1`，假定前面有一层受信任代理；Session 中间件同时使用生产 `secure: true`。这个设置让应用正确识别外部 HTTPS，不会让浏览器在普通 HTTP 下发送 Secure Cookie。
