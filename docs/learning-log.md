@@ -740,3 +740,9 @@
 - 学习者指出前端既然能运行就应有 API 地址。核对代码后确认：`apps/mini-saas-web/src/lib/api.ts` 本地默认使用 `http://localhost:3000`，生产构建使用相对 `/api`；Render Static Site 将 `/api/*` Rewrite 到独立 API Service，浏览器通过前端 Origin 完成请求并携带凭证。
 - Agent 更正此前表述：项目有 API 接入和历史 Render 公网部署；当前缺的是本轮改动对应的线上 URL/部署 commit 尚未重新核对，不是“没有 API 地址”。历史线上验收不能自动替代本轮 smoke 证据。
 - 本次为代码与文档澄清，没有部署、线上请求或代码修改；R2 工程退出仍待生产 smoke test。
+
+## 2026-09-10｜部署证据确认方法补课
+
+- 针对如何确认当前线上地址和版本，给出四层证据流程：Render 部署记录核对服务 URL 与 commit；浏览器 Network 核对前端 `/api` Rewrite 和凭证请求；公网 HTTPS 检查 `/health`、`/ready` 与受保护业务；Neon 按本次保存的 ID 定向核对清理。
+- 说明边界：浏览器通常看不到代理到 Nest 的内部 `X-Forwarded-Proto`，需用平台拓扑配置和运行时 `Secure` Cookie/刷新恢复行为共同验证；缺少 commit 或目标地址时结果只能标记为未验证。
+- 本次为流程讲解，没有新增独立回答、部署或线上请求；R2 工程退出仍待生产 smoke test。
