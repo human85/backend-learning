@@ -746,3 +746,12 @@
 - 针对如何确认当前线上地址和版本，给出四层证据流程：Render 部署记录核对服务 URL 与 commit；浏览器 Network 核对前端 `/api` Rewrite 和凭证请求；公网 HTTPS 检查 `/health`、`/ready` 与受保护业务；Neon 按本次保存的 ID 定向核对清理。
 - 说明边界：浏览器通常看不到代理到 Nest 的内部 `X-Forwarded-Proto`，需用平台拓扑配置和运行时 `Secure` Cookie/刷新恢复行为共同验证；缺少 commit 或目标地址时结果只能标记为未验证。
 - 本次为流程讲解，没有新增独立回答、部署或线上请求；R2 工程退出仍待生产 smoke test。
+
+## 2026-09-10｜R2 部署后生产 smoke 验收
+
+- 用户提供并确认公网 API 地址为 `https://backend-learning-mini-sass-api.onrender.com`。Render 控制台显示 API 服务和静态站点的最新成功部署均为 `19da815`；注意服务名和前端服务中的 `saas`/`sass` 拼写必须逐字符核对，静态站点 Rewrite 的目标是 `backend-learning-mini-sass-api`。
+- 先从静态站点根路径确认页面真实渲染为登录/注册界面，再通过静态站点的 `/api` Rewrite 执行真实 HTTP smoke：`/health 200`、`/ready 200`、未登录 `/auth/me 401`、注册 `201`、登录 `200`、认证用户读取 `200`、项目创建/列表/读取 `201/200/200`、删除 `204`、删除后读取 `404`、注销 `204`、注销后 `/auth/me 401`。
+- 登录响应的 Session Cookie 具备 `Secure`、`HttpOnly`、`SameSite=Lax`、`Path=/`；每一步响应都带独立 `X-Request-ID`。Render 日志中按 `d786b865-544c-48e4-ab70-576d06feeb5d` 找到 `/health` 的 `GET 200`，按 `b0180749-3461-4b07-913c-30b1126a1aa7` 找到 `/projects` 的 `POST 201`，按 `062c615b-755f-4559-ad79-0cb2d398143b` 找到 DELETE 的 `204`，并核对了 `timestamp`、路由模板、`statusCode`、`durationMs` 和日志字段白名单。
+- 临时账号和项目使用唯一标记。API 删除项目、注销 Session 后，Neon 定向查询显示项目、Session、用户均为 0；由于应用没有公开删除用户接口，最后一步使用受控数据库管理操作，并按项目 → Session → 用户顺序执行。
+- 过程中第一次 smoke 脚本把成功登录误判为失败，原因是检查了错误的返回字段；日志和响应头证明服务已返回 Cookie，修正脚本后完整重跑通过。该次工具误判与服务失败分开保留，不能用最终清理成功覆盖第一次错误证据。
+- 本次真实部署后 smoke 满足 R2 工程退出条件；学习者已多次独立判断健康、Readiness、Request ID、CORS、Cookie、日志和清理证据的边界，下一阶段转入 R3 陌生需求拆解。登录限流、监控告警、备份恢复、自动生产 migration 和容量评估仍未覆盖。

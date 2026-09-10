@@ -10,6 +10,6 @@
 - /ready 的响应禁止缓存；失败完成日志记录 Request ID 和固定 database_probe_failed 分类，不记录原始错误和凭证。它可定位依赖探测失败，不能区分具体网络或认证根因。
 - 专用探测池能执行 SELECT 1，不证明业务连接池可用、migration 已完成、写权限存在或业务逻辑正确。应用启动仍依赖 TypeORM 成功连接；这次实现没有承诺数据库离线时应用仍可启动。
 
-真实验证：测试专属 TCP 代理模拟握手无响应和已建立连接的响应中断；恢复后可继续探测。PostgreSQL pg_sleep 验证服务端取消慢语句。此为本地证据，尚未重新部署或接入平台 Readiness 调度。
+真实验证：测试专属 TCP 代理模拟握手无响应和已建立连接的响应中断；恢复后可继续探测。PostgreSQL pg_sleep 验证服务端取消慢语句。上述是本地故障证据；随后在 Render `19da815` 部署版本的公网 smoke 中确认 `/ready` 返回 200。平台 Readiness 调度配置仍未纳入本课。
 
 实现见 [readiness.service.ts](../../apps/mini-saas/src/readiness/readiness.service.ts)。驱动配置与销毁语义参考 [node-postgres Client](https://node-postgres.com/apis/client) 和 [Pool](https://node-postgres.com/apis/pool)。

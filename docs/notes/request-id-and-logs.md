@@ -13,4 +13,4 @@
 
 当前边界：这是请求完成日志，没有 Service 内部上下文、错误原因分类和客户端断连记录。请求编号能关联失败，但不保证仅靠现有日志定位数据库故障根因；响应写出也不证明客户端已收到或数据库业务一定正确。
 
-代码：[`request-logging.ts`](../../apps/mini-saas/src/observability/request-logging.ts)。异常处理扩展方式参考 [NestJS 官方异常过滤器文档](https://docs.nestjs.com/exception-filters)。上述实现目前只有本地证据，未重新部署。
+代码：[`request-logging.ts`](../../apps/mini-saas/src/observability/request-logging.ts)。异常处理扩展方式参考 [NestJS 官方异常过滤器文档](https://docs.nestjs.com/exception-filters)。实现先有本地证据，随后在 Render `19da815` 部署版本的公网 smoke 中按 Request ID 核对到对应日志。

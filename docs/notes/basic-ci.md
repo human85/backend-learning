@@ -8,7 +8,7 @@
 - CI PostgreSQL 是 GitHub Actions job 的 `postgres:17` service，数据库名为 `mini_saas_test`。连接串、测试用 Session Secret 和前端来源只从工作流环境变量读取；不提交或复制本机 `.env.test.local`。
 - 首次远端运行曾发现 readiness e2e 在环境变量选择前无条件读取本机文件。测试现改为先读取 `DATABASE_URL`，只在本地变量缺失时读取 `.env.test.local`；这让本机便利配置不再成为 CI 的隐式前提。
 - 修复后的 [GitHub Actions run 34202748980](https://github.com/human85/backend-learning/actions/runs/34202748980) 在 59 秒内通过。这个结果是隔离 runner 的工程证据；它不表示线上数据库、浏览器部署或所有工作区项目已验证。
-- 后续文档提交触发的 [GitHub Actions run 34446818133](https://github.com/human85/backend-learning/actions/runs/34446818133) 也完整通过，包含格式、lint、46 个单元测试、migration、43 个 HTTP e2e、build 和 diff 检查；它仍不替代本轮改动的生产 smoke。
+- 后续文档提交触发的 [GitHub Actions run 34446818133](https://github.com/human85/backend-learning/actions/runs/34446818133) 也完整通过，包含格式、lint、46 个单元测试、migration、43 个 HTTP e2e、build 和 diff 检查；它本身不替代生产 smoke，但本轮随后已在目标部署版本上完成真实验收。
 - migration 必须先于 e2e：应用测试会查询 users、sessions 与 projects 表；新 runner 的数据库通常没有当前 schema。迁移成功也不证明 HTTP 合同、权限或业务规则正确，仍需要 e2e。migration 可能包含受控的数据变换，但不应把测试数据库的临时种子数据误当作生产数据验证。
 - lint 在 CI 中没有 `--fix`，格式检查也不写文件；最后检查 diff，避免“CI 通过但静默改写代码”的情况。
 - 当前范围只覆盖 Mini SaaS 后端。Hono 的集成测试会清理教学表，前端、浏览器和生产部署各有不同的隔离与验收需要，未因为新增 CI 自动获得覆盖。
@@ -37,7 +37,7 @@ DELETE 的 HTTP 幂等性不要求每次响应码相同：本项目首次删除�
 
 修复 DELETE 或其他流程节点后，先执行受影响的单元/e2e，再重新走完整 smoke。局部重试只能验证单个请求，完整回归才能发现对认证、Session、归属条件和清理步骤的副作用。
 
-CI 和本地测试通过不等于 R2 完成。仍需在目标部署版本上执行真实环境 smoke，核对 `/health`、`/ready`、Request ID 日志及项目、用户和 Session 的数据库清理状态。
+CI 和本地测试通过不等于 R2 完成；本轮已在目标部署版本 `19da815` 上执行真实环境 smoke，并核对 `/health`、`/ready`、Request ID 日志及项目、用户和 Session 的数据库清理状态。
 
 配置验证也要按配置项分层：禁止打印 `DATABASE_URL`、`SESSION_SECRET` 等原文；数据库建连或 readiness 只证明 `DATABASE_URL` 的当前连通和认证，Session 与 CORS 配置要分别用登录恢复、Cookie 属性和预检响应验证。
 
