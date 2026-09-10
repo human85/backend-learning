@@ -59,3 +59,5 @@ CI 和本地测试通过不等于 R2 完成。仍需在目标部署版本上执�
 反向代理信任不会放宽浏览器发送 `Secure` Cookie 的规则。它只让应用从受信任的 `X-Forwarded-Proto` 识别外部 HTTPS，以便设置 Cookie 和执行安全策略；信任范围过宽会让客户端伪造转发头，造成安全判断错误。
 
 基础链路：浏览器通过公网 HTTPS 访问反向代理，代理可以终止 TLS，再用内部 HTTP 转发到 Nest。`X-Forwarded-Proto` 是代理传给后端的外部协议元数据；`trust proxy` 决定应用是否接受它。它不让浏览器在普通 HTTP 下发送 `Secure` Cookie。
+
+因此，Nest 收到内部 HTTP 时，`X-Forwarded-Proto: https` 仍可表示浏览器到代理的外部链路是 HTTPS；这两段连接的协议不要混为一谈。
