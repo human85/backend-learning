@@ -83,6 +83,7 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 增加生产 HTTPS 代理 e2e：先复现登录响应缺少 `Secure` Cookie，再让生产应用只信任最近一层反向代理；带 `X-Forwarded-Proto: https` 的登录响应现已正确设置 Secure Session Cookie，完整 43 个单元测试、32 个 e2e、前端 10 个测试、lint 和 build 通过。
 - 创建个人 Neon Free PostgreSQL，连接地址只保存在 Git 忽略的 `.env.production.local`；使用生产 Docker Image 查询到 4 条待执行 migration，成功在线创建 migrations、projects、sessions、users，并再次确认 4 条 migration 全部完成。
 - Render Free Web Service 从个人 GitHub `main` 的 Dockerfile 成功构建并上线；公网验证 `/health`、根路由、CORS 预检、注册登录、生产 Secure Cookie、`/auth/me`、项目创建/列表/删除、注销后 `401` 全部符合合同，临时用户、项目和 Session 已从 Neon 精确清理。
+- 当前 Render 服务、公开地址、Rewrite、配置来源和版本记录见 [部署清单](../notes/deployment-inventory.md)；清单只保留可公开定位信息，不记录密钥或数据库连接串。
 - 前端 API 基地址从硬编码 localhost 改为构建时 `VITE_API_BASE_URL`，本地未配置仍使用 localhost；静态站点已通过 `/api/*` Rewrite 到 Render API，浏览器保持同源且 Cookie 继续使用 Lax。
 - React 静态站点已部署到 Render，并按 shadcn 登录 Block 重组认证页；相对 `/api` 和完整线上 Session 行为已于 2026-08-11 完成历史验收，本次文档维护未重新检查线上状态。
 - 接入 `@nestjs/swagger`，提供 `/docs` 与 `/openapi.json`；Auth 和 Projects 描述请求、响应、关键状态码及 Cookie Session，PublicUserDto 和 ProjectResponseDto 将公开合同与数据库 Entity 分离。
