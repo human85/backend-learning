@@ -53,3 +53,5 @@ CI 和本地测试通过不等于 R2 完成。仍需在目标部署版本上执�
 服务端返回的响应头使用 `Access-Control-Expose-Headers` 暴露；`Access-Control-Allow-Headers` 只用于允许客户端在请求中发送指定请求头，两者不要混用。
 
 `HttpOnly` Cookie 不能被前端 JavaScript 读取，但浏览器仍可在凭证请求中自动发送。实际发送还要满足域名、Path、`SameSite`、`Secure`、`credentials` 和 CORS 条件。
+
+生产环境的 `Secure` Cookie 只应通过 HTTPS 发送；HTTP smoke 可能出现登录响应成功但后续 `/auth/me` 为 `401`。反向代理必须正确传递 HTTPS 协议，应用也要按预期信任代理层。

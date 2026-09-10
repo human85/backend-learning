@@ -650,3 +650,9 @@
 - 场景是 Session Cookie 设置了 `HttpOnly`，请求使用 `credentials: 'include'`。学习者判断浏览器仍会自动携带 Cookie；该回答正确区分 JavaScript 读取权限与浏览器网络发送行为。
 - Agent 补充：是否实际发送还受 Cookie 的域名、路径、`SameSite`、`Secure`、请求凭证和 CORS 条件影响；`HttpOnly` 本身只阻止脚本读取或修改。
 - 本次为独立预测复测，Session Cookie 边界通过；没有部署、线上请求或代码修改，R2 工程退出仍待生产 smoke test。
+
+## 2026-09-10｜Secure Cookie 传输边界复测
+
+- 场景是生产环境设置了 `Secure` Cookie，却使用普通 HTTP 地址执行 smoke。学习者判断 HTTP 下 Cookie 不会自动携带，必须使用 HTTPS；该回答正确覆盖登录成功与后续 Session 恢复失败之间的原因链路。
+- Agent 补充：浏览器可能显示登录响应成功，但不会在不安全的 HTTP 请求中发送 `Secure` Cookie，刷新后的 `/auth/me` 因此会返回 `401`。生产验收还需确认反向代理传递 `X-Forwarded-Proto: https`，并检查应用是否只信任预期的代理层。
+- 本次为独立预测复测，Secure Cookie 传输边界通过；没有部署、线上请求或代码修改，R2 工程退出仍待生产 smoke test。
