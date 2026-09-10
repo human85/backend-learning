@@ -4,7 +4,7 @@
 
 ## 基本信息
 
-- 最近更新：2026-09-10（R2 部署后生产 smoke 完成；准备进入 R3）
+- 最近更新：2026-09-10（补充部署平台与地址清单；准备进入 R3）
 - 学习者背景：Web 前端工程师；目标是借助 AI 完成全栈交付，并能独立拆解需求、审查边界和定位故障。
 - 教学偏好：中文；先讲原因和请求链路；AI 主导实现；学习者先预测，再审查和验证；只安排有价值的短小手写练习。
 - 第一轮：已于 2026-08-12 完成 30 天最小全栈闭环，原目标日期为 2026-08-18；这是历史验收结论，不表示当前线上服务已重新检查或系统完整生产就绪。
@@ -53,7 +53,7 @@
 - 当前边界：它不运行 Hono 会清表的集成测试、前端测试、浏览器/线上验收或自动生产 migration。CI 的测试数据库只用于该 job，不能代替部署验证。
 - CI 审查证据：学习者独立说明 migration 先于 e2e 是因为否则数据库仍是旧 schema，测试无法代表当前代码；并说明云端 CI 不能读取本机环境变量。Agent 补充 CI 新库可能为空，migration 负责建立当前 schema（必要时也可包含受控数据迁移）。
 - R2 退出判断：学习者能说明 CI、`/ready`、Request ID 和业务验收的基本分工；把“CI 证明数据连接没问题”和“ready 证明服务正常”说得过宽，Agent 收窄为临时数据库上的选定测试、当前一次 SELECT 1 探测。Request ID 用于找到对应请求的回答正确。
-- R2 部署证据：本轮业务 smoke 的目标版本是 Render API 服务 `backend-learning-mini-sass-api` 与静态站点 `backend-learning-mini-saas-web` 的 `19da815`；随后仅变更文档的 `611484b` 也已在两项服务成功自动部署。静态站点 Rewrite 为 `/api/*` → `https://backend-learning-mini-sass-api.onrender.com/*`，根路径回退到 `/index.html`。
+- R2 部署证据：本轮业务 smoke 的目标版本是 Render API 服务 `backend-learning-mini-sass-api` 与静态站点 `backend-learning-mini-saas-web` 的 `19da815`；随后仅变更文档的 `611484b` 也已在两项服务成功自动部署。静态站点 Rewrite 为 `/api/*` → `https://backend-learning-mini-sass-api.onrender.com/*`，根路径回退到 `/index.html`。平台、环境、服务 ID、公开地址、配置来源和验证边界已整理到 [部署清单](notes/deployment-inventory.md)。
 - 部署验收预测：学习者提出先检查 `/health`、`/ready`，再做 e2e 测试并用 Request ID 找到对应请求；Agent 收窄为生产只做可清理的 smoke test，完整 e2e 留在 CI 隔离数据库，避免清表测试破坏生产数据。
 - Smoke test 清理反馈：学习者提出统一使用 test/temp 命名并在结束后清理，删除失败时根据响应定位代码逻辑；方向正确但需唯一标记、`finally` 清理、数据库状态核对和 Request ID 日志证据。固定名称可能撞击真实数据，响应本身也不等于根因。
 - 清理顺序复测：学习者回答项目 → 账号 → Session，并要求前一项完成后再进入下一项。项目优先正确；当前 `projects.owner_id` 是 `ON DELETE RESTRICT`，Session 表没有用户外键，因此语义上应先项目、再注销/销毁 Session、最后删除账号。若一步失败，不应短路后续独立清理，应收集各步错误并最终报告。
