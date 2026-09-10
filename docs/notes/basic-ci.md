@@ -8,6 +8,7 @@
 - CI PostgreSQL 是 GitHub Actions job 的 `postgres:17` service，数据库名为 `mini_saas_test`。连接串、测试用 Session Secret 和前端来源只从工作流环境变量读取；不提交或复制本机 `.env.test.local`。
 - 首次远端运行曾发现 readiness e2e 在环境变量选择前无条件读取本机文件。测试现改为先读取 `DATABASE_URL`，只在本地变量缺失时读取 `.env.test.local`；这让本机便利配置不再成为 CI 的隐式前提。
 - 修复后的 [GitHub Actions run 34202748980](https://github.com/human85/backend-learning/actions/runs/34202748980) 在 59 秒内通过。这个结果是隔离 runner 的工程证据；它不表示线上数据库、浏览器部署或所有工作区项目已验证。
+- 后续文档提交触发的 [GitHub Actions run 34446818133](https://github.com/human85/backend-learning/actions/runs/34446818133) 也完整通过，包含格式、lint、46 个单元测试、migration、43 个 HTTP e2e、build 和 diff 检查；它仍不替代本轮改动的生产 smoke。
 - migration 必须先于 e2e：应用测试会查询 users、sessions 与 projects 表；新 runner 的数据库通常没有当前 schema。迁移成功也不证明 HTTP 合同、权限或业务规则正确，仍需要 e2e。migration 可能包含受控的数据变换，但不应把测试数据库的临时种子数据误当作生产数据验证。
 - lint 在 CI 中没有 `--fix`，格式检查也不写文件；最后检查 diff，避免“CI 通过但静默改写代码”的情况。
 - 当前范围只覆盖 Mini SaaS 后端。Hono 的集成测试会清理教学表，前端、浏览器和生产部署各有不同的隔离与验收需要，未因为新增 CI 自动获得覆盖。
