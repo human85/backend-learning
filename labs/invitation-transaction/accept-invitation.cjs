@@ -11,9 +11,10 @@ async function acceptInvitation(
       { status: 'accepted' },
     );
 
-    // TODO：只有 result.affected 恰好为 1 才能继续。
-    // 其余情况抛出 Error，消息使用“邀请无法接受”。
-    // 请在这里补充判断，保留下面的插入操作。
+    // 只有成功更新一条邀请，才继续插入成员。
+    if (result.affected !== 1) {
+      throw Error('邀请无法接受');
+    }
 
     await manager.insert('project_members', {
       projectId,
