@@ -15,6 +15,16 @@ import { InvitationResponseDto } from './dto/invitation-response.dto';
 export class InvitationsService {
   constructor(private readonly dataSource: DataSource) {}
 
+  async listReceived(currentUserId: number): Promise<InvitationResponseDto[]> {
+    const invitations = await this.dataSource
+      .getRepository(InvitationEntity)
+      .find({
+        where: { inviteeId: currentUserId },
+        order: { id: 'DESC' },
+      });
+    return invitations.map((invitation) => this.toResponse(invitation));
+  }
+
   async createInvitation(
     projectId: number,
     inviteeId: number,
@@ -62,14 +72,7 @@ export class InvitationsService {
               status: 'pending',
             }),
           );
-          return {
-            id: invitation.id,
-            projectId: invitation.projectId,
-            inviterId: invitation.inviterId,
-            inviteeId: invitation.inviteeId,
-            status: invitation.status,
-            createdAt: invitation.createdAt,
-          };
+          return this.toResponse(invitation);
         },
       );
     } catch (error) {
@@ -96,5 +99,16 @@ export class InvitationsService {
       }
       throw error;
     }
+  }
+
+  private toResponse(invitation: InvitationEntity): InvitationResponseDto {
+    return {
+      id: invitation.id,
+      projectId: invitation.projectId,
+      inviterId: invitation.inviterId,
+      inviteeId: invitation.inviteeId,
+      status: invitation.status,
+      createdAt: invitation.createdAt,
+    };
   }
 }

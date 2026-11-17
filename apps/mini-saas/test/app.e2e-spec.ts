@@ -617,6 +617,85 @@ describe('AppController (e2e)', () => {
       await invitee.agent.get('/projects/1').expect(404);
     });
 
+    it('requires a Session to list received invitations', async () => {
+      await request(app.getHttpServer()).get('/invitations').expect(401);
+    });
+
+    it('returns an empty array for a recipient with no invitations', async () => {
+      await invitee.agent.get('/invitations').expect(200).expect([]);
+    });
+
+    it('lists only the Session recipient including history, newest first', async () => {
+      const other = await createAuthenticatedClient(
+        'other-invitee@example.com',
+      );
+      await owner.agent
+        .post('/projects/1/invitations')
+        .send({ inviteeId: 2 })
+        .expect(201);
+      await owner.agent
+        .post('/projects/1/invitations')
+        .send({ inviteeId: 3 })
+        .expect(201);
+      await app
+        .get(DataSource)
+        .query(
+          "UPDATE invitations SET status = 'accepted' WHERE invitee_id = 2",
+        );
+      await owner.agent
+        .post('/projects/1/invitations')
+        .send({ inviteeId: 2 })
+        .expect(201);
+
+      const response = await invitee.agent
+        .get('/invitations')
+        .expect(200)
+        .expect('Cache-Control', 'no-store');
+      const invitations = response.body as Array<Record<string, unknown>>;
+      expect(
+        invitations.map(({ id, inviteeId, status }) => ({
+          id,
+          inviteeId,
+          status,
+        })),
+      ).toEqual([
+        { id: 3, inviteeId: 2, status: 'pending' },
+        { id: 1, inviteeId: 2, status: 'accepted' },
+      ]);
+      for (const invitation of invitations) {
+        expect(Object.keys(invitation).sort()).toEqual([
+          'createdAt',
+          'id',
+          'inviteeId',
+          'inviterId',
+          'projectId',
+          'status',
+        ]);
+      }
+      const otherResponse = await other.agent.get('/invitations').expect(200);
+      expect(
+        (otherResponse.body as Array<{ id: number }>).map(({ id }) => id),
+      ).toEqual([2]);
+      await owner.agent.get('/invitations').expect(200).expect([]);
+    });
+
+    it('rejects query parameters instead of using them to choose a recipient', async () => {
+      await owner.agent
+        .post('/projects/1/invitations')
+        .send({ inviteeId: 2 })
+        .expect(201);
+      for (const query of [
+        'userId=1',
+        'inviteeId=1',
+        'userId=1&userId=2',
+        'status=pending',
+      ]) {
+        await invitee.agent.get(`/invitations?${query}`).expect(400);
+      }
+      const response = await invitee.agent.get('/invitations').expect(200);
+      expect(response.body).toMatchObject([{ inviteeId: 2 }]);
+    });
+
     it('requires a logged-in Session', async () => {
       await request(app.getHttpServer())
         .post('/projects/1/invitations')
