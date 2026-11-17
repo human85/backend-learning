@@ -820,3 +820,14 @@
 - 回归：46 个单元测试、build、变更 TS 文件只读 ESLint 通过。通过独立临时 PostgreSQL 17 实例执行测试库迁移与完整 52 个 e2e，4 个 suite 全通过，实例与临时目录随后清理；本机 schema 临时库无残留。配置回退调整后再跑 9 个 schema 测试通过。
 - 验证边界：未对开发库/生产库运行迁移、未部署；应用接口还不使用新表。真实约束不证明认证、所有者权限、owner 不重复作为成员、接受/转让原子性或项目行锁，后续需要 Service 和独立测试。
 - 更新学习快照、路线图、项目实现草案与测试运行说明。下一步让学习者审查 pending 部分唯一索引，再进入邀请权限与事务 Service；不继续添加组织/邮件/队列等范围。
+
+## 2026-11-17｜创建邀请：Session、归属与事务链路
+
+- 唯一目标：实现创建邀请，不扩展接受、拒绝、转让、退出或前端。此前 SQL 审查中，学习者对去掉 WHERE 的效果理解反向，并提出 status 加入唯一组合；Agent 演示重复 accepted 冲突后学习者表示明白，尚未独立复测，不能记为掌握部分索引。
+- 新增 InvitationsModule、ProjectInvitationsController、InvitationsService、输入/响应 DTO；AppModule 注册。POST /projects/:projectId/invitations 从 Session 取 inviterId；仅允许正整数 int32 的项目/受邀人编号，拒绝客户端身份和状态字段。
+- Service 采用 READ COMMITTED，事务 manager 中先设置 2 秒 lock_timeout，再按 id+ownerId 查询并 FOR UPDATE；只有当前所有者可继续。检查自己/已有成员/受邀人存在性/重复 pending，显式只保存和返回邀请字段，不创建成员，不开放项目读取权限。
+- 已知异常映射限定错误码和约束名：pending 唯一冲突 409、目标用户外键消失 404、锁超时 503；其他错误继续交给安全过滤器。现有过滤器保留 503 但统一 5xx 文案为 Internal server error，最初 e2e 对文案预期不符，按既有合同修正；未放宽错误泄露规则。Swagger 参数范围起初放错位置引发编译错误，改为 schema 后构建通过。
+- 新增 6 个 Service 异常边界单测、9 个真实 HTTP 用例。HTTP 覆盖成功 Session 来源与无成员副作用、未登录、非法/额外字段、陌生用户/普通成员、自己/不存在/已有成员、并发 201+409、历史重邀；双连接观察 pg_blocking_pids 证明等待，并发所有权提交后旧所有者返回 404；持锁超时返回安全 503，释放后重试成功。
+- 故障验证：临时移除查询的 ownerId 条件，非所有者请求变为 201，权限 e2e 按预期失败；恢复后完整 61 个 e2e（4 suite）通过。52 个单元测试（13 suite）、build 与变更文件只读 ESLint 通过。数据库测试使用独立临时 PostgreSQL 17 实例，结束后停止/清理，不修改开发或生产库。
+- 本次无新增学习者编码或独立答题，Agent 实现/测试证据不等于学习证据。未主动部署、未执行线上迁移/验收；新接口线上使用前仍需对应 schema，不能由 push 推断可用。
+- 下一步审查 Controller 到 Service 的身份/归属/事务链路，再实现收到邀请与接受/拒绝；转让/退出相关锁协议和剩余合同仍待后续切片。

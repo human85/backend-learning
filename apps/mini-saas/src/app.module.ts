@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { environmentValidationSchema } from './config/environment.validation';
 import { createDatabaseOptions } from './database/database-options';
 import { ProjectsModule } from './projects/projects.module';
+import { InvitationsModule } from './invitations/invitations.module';
 import { SessionModule } from './session/session.module';
 import { ReadinessController } from './readiness/readiness.controller';
 import { ReadinessService } from './readiness/readiness.service';
@@ -30,6 +31,7 @@ import { ReadinessService } from './readiness/readiness.service';
     SessionModule,
     AuthModule,
     ProjectsModule,
+    InvitationsModule,
   ],
   controllers: [AppController, ReadinessController],
   providers: [AppService, ReadinessService],

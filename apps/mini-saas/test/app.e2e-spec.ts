@@ -569,6 +569,223 @@ describe('AppController (e2e)', () => {
     });
   });
 
+  describe('creating project invitations', () => {
+    let owner: Awaited<ReturnType<typeof createAuthenticatedClient>>;
+    let invitee: Awaited<ReturnType<typeof createAuthenticatedClient>>;
+
+    beforeEach(async () => {
+      owner = await createAuthenticatedClient();
+      invitee = await createAuthenticatedClient('invitee@example.com');
+      await owner.agent
+        .post('/projects')
+        .send({ name: 'Invitation project' })
+        .expect(201);
+    });
+
+    async function invitationCount() {
+      const rows = await app
+        .get(DataSource)
+        .query<Array<{ count: number }>>(
+          'SELECT count(*)::int AS count FROM invitations',
+        );
+      return rows[0].count;
+    }
+
+    it('creates pending invitation from Session identity without granting membership', async () => {
+      const response = await owner.agent
+        .post('/projects/1/invitations')
+        .send({ inviteeId: 2 })
+        .expect(201);
+      expect(response.body).toEqual({
+        id: expect.any(Number) as unknown,
+        projectId: 1,
+        inviterId: 1,
+        inviteeId: 2,
+        status: 'pending',
+        createdAt: expect.any(String) as unknown,
+      });
+      expect(response.headers['x-request-id']).toEqual(expect.any(String));
+      const rows = await app
+        .get(DataSource)
+        .query<Array<{ inviter_id: number }>>(
+          'SELECT inviter_id FROM invitations',
+        );
+      expect(rows).toEqual([{ inviter_id: 1 }]);
+      expect(
+        await app.get(DataSource).query('SELECT * FROM project_members'),
+      ).toEqual([]);
+      await invitee.agent.get('/projects/1').expect(404);
+    });
+
+    it('requires a logged-in Session', async () => {
+      await request(app.getHttpServer())
+        .post('/projects/1/invitations')
+        .send({ inviteeId: 2 })
+        .expect(401);
+      expect(await invitationCount()).toBe(0);
+    });
+
+    it('rejects malformed IDs, spoofed identity and client-controlled status', async () => {
+      for (const body of [
+        {},
+        { inviteeId: '2' },
+        { inviteeId: 0 },
+        { inviteeId: 1.5 },
+        { inviteeId: null },
+        { inviteeId: 2147483648 },
+        { inviteeId: 2, inviterId: 1 },
+        { inviteeId: 2, status: 'accepted' },
+      ]) {
+        await owner.agent
+          .post('/projects/1/invitations')
+          .send(body)
+          .expect(400);
+      }
+      for (const id of ['abc', '0', '-1', '1.5', '2147483648']) {
+        await owner.agent
+          .post(`/projects/${id}/invitations`)
+          .send({ inviteeId: 2 })
+          .expect(400);
+      }
+      expect(await invitationCount()).toBe(0);
+    });
+
+    it('hides missing projects and rejects both strangers and ordinary members', async () => {
+      await owner.agent
+        .post('/projects/999/invitations')
+        .send({ inviteeId: 2 })
+        .expect(404);
+      await invitee.agent
+        .post('/projects/1/invitations')
+        .send({ inviteeId: 1 })
+        .expect(404);
+      await app
+        .get(DataSource)
+        .query(
+          'INSERT INTO project_members (project_id, member_id) VALUES (1, 2)',
+        );
+      await invitee.agent
+        .post('/projects/1/invitations')
+        .send({ inviteeId: 1 })
+        .expect(404);
+      expect(await invitationCount()).toBe(0);
+    });
+
+    it('rejects inviting oneself, an existing member or an unknown user', async () => {
+      await owner.agent
+        .post('/projects/1/invitations')
+        .send({ inviteeId: 1 })
+        .expect(409);
+      await owner.agent
+        .post('/projects/1/invitations')
+        .send({ inviteeId: 999 })
+        .expect(404);
+      await app
+        .get(DataSource)
+        .query(
+          'INSERT INTO project_members (project_id, member_id) VALUES (1, 2)',
+        );
+      await owner.agent
+        .post('/projects/1/invitations')
+        .send({ inviteeId: 2 })
+        .expect(409);
+      expect(await invitationCount()).toBe(0);
+    });
+
+    it('returns one 201 and one 409 for concurrent duplicate requests', async () => {
+      const responses = await Promise.all([
+        owner.agent.post('/projects/1/invitations').send({ inviteeId: 2 }),
+        owner.agent.post('/projects/1/invitations').send({ inviteeId: 2 }),
+      ]);
+      expect(responses.map((response) => response.status).sort()).toEqual([
+        201, 409,
+      ]);
+      expect(await invitationCount()).toBe(1);
+    });
+
+    it('allows a new invitation alongside used history when no membership remains', async () => {
+      await owner.agent
+        .post('/projects/1/invitations')
+        .send({ inviteeId: 2 })
+        .expect(201);
+      // Arrange historical state only; this does not test acceptance or leaving.
+      await app
+        .get(DataSource)
+        .query("UPDATE invitations SET status = 'accepted'");
+      await owner.agent
+        .post('/projects/1/invitations')
+        .send({ inviteeId: 2 })
+        .expect(201);
+      expect(
+        await app
+          .get(DataSource)
+          .query('SELECT status FROM invitations ORDER BY id'),
+      ).toEqual([{ status: 'accepted' }, { status: 'pending' }]);
+    });
+
+    it('returns a safe 503 on lock timeout and permits retry after release', async () => {
+      const blocker = app.get(DataSource).createQueryRunner();
+      await blocker.connect();
+      await blocker.startTransaction();
+      try {
+        await blocker.query('SELECT id FROM projects WHERE id = 1 FOR UPDATE');
+        const response = await owner.agent
+          .post('/projects/1/invitations')
+          .send({ inviteeId: 2 })
+          .expect(503);
+        expect(response.body).toMatchObject({
+          statusCode: 503,
+          message: 'Internal server error',
+        });
+        expect(await invitationCount()).toBe(0);
+      } finally {
+        await blocker.rollbackTransaction();
+        await blocker.release();
+      }
+      await owner.agent
+        .post('/projects/1/invitations')
+        .send({ inviteeId: 2 })
+        .expect(201);
+    });
+
+    it('waits for the project lock and rechecks ownership after a concurrent change', async () => {
+      const database = app.get(DataSource);
+      const blocker = database.createQueryRunner();
+      await blocker.connect();
+      await blocker.startTransaction();
+      let pending: Promise<request.Response> | undefined;
+      try {
+        const [{ pid }] = await blocker.query<Array<{ pid: number }>>(
+          'SELECT pg_backend_pid() AS pid',
+        );
+        await blocker.query('SELECT id FROM projects WHERE id = 1 FOR UPDATE');
+        await blocker.query('UPDATE projects SET owner_id = 2 WHERE id = 1');
+        pending = owner.agent
+          .post('/projects/1/invitations')
+          .send({ inviteeId: 2 })
+          .then((response) => response);
+        let waiting = false;
+        const deadline = Date.now() + 1200;
+        while (!waiting && Date.now() < deadline) {
+          const rows = await database.query<Array<{ waiting: boolean }>>(
+            'SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE $1 = ANY(pg_blocking_pids(pid))) AS waiting',
+            [pid],
+          );
+          waiting = rows[0].waiting;
+          if (!waiting) await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+        expect(waiting).toBe(true);
+        await blocker.commitTransaction();
+      } finally {
+        if (blocker.isTransactionActive) await blocker.rollbackTransaction();
+        await blocker.release();
+        if (pending) await pending;
+      }
+      expect((await pending).status).toBe(404);
+      expect(await invitationCount()).toBe(0);
+    });
+  });
+
   afterEach(async () => {
     await app.close();
   });
