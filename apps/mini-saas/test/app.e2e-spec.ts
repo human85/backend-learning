@@ -696,6 +696,168 @@ describe('AppController (e2e)', () => {
       expect(response.body).toMatchObject([{ inviteeId: 2 }]);
     });
 
+    describe('accepting a received invitation', () => {
+      beforeEach(async () => {
+        await owner.agent
+          .post('/projects/1/invitations')
+          .send({ inviteeId: 2 })
+          .expect(201);
+      });
+
+      it('atomically accepts and stores exactly the Session user membership', async () => {
+        const response = await invitee.agent
+          .post('/invitations/1/accept')
+          .expect(200);
+        expect(response.body).toMatchObject({
+          id: 1,
+          projectId: 1,
+          inviterId: 1,
+          inviteeId: 2,
+          status: 'accepted',
+        });
+        expect(
+          await app
+            .get(DataSource)
+            .query('SELECT status FROM invitations WHERE id = 1'),
+        ).toEqual([{ status: 'accepted' }]);
+        expect(
+          await app
+            .get(DataSource)
+            .query('SELECT project_id, member_id FROM project_members'),
+        ).toEqual([{ project_id: 1, member_id: 2 }]);
+        const list = await invitee.agent.get('/invitations').expect(200);
+        expect(list.body).toMatchObject([{ id: 1, status: 'accepted' }]);
+      });
+
+      it('requires the Session recipient and validates IDs and unexpected inputs', async () => {
+        await request(app.getHttpServer())
+          .post('/invitations/1/accept')
+          .expect(401);
+        await owner.agent.post('/invitations/1/accept').expect(404);
+        await invitee.agent.post('/invitations/999/accept').expect(404);
+        for (const id of ['abc', '0', '-1', '2147483648']) {
+          await invitee.agent.post(`/invitations/${id}/accept`).expect(400);
+        }
+        await invitee.agent
+          .post('/invitations/1/accept')
+          .send({ userId: 1 })
+          .expect(400);
+        await invitee.agent
+          .post('/invitations/1/accept')
+          .send({ status: 'accepted' })
+          .expect(400);
+        await invitee.agent
+          .post('/invitations/1/accept?inviteeId=1')
+          .expect(400);
+        expect(
+          await app.get(DataSource).query('SELECT status FROM invitations'),
+        ).toEqual([{ status: 'pending' }]);
+        expect(
+          await app.get(DataSource).query('SELECT * FROM project_members'),
+        ).toEqual([]);
+      });
+
+      it('returns success for concurrent and later retries without duplicate members', async () => {
+        const responses = await Promise.all([
+          invitee.agent.post('/invitations/1/accept'),
+          invitee.agent.post('/invitations/1/accept'),
+        ]);
+        expect(responses.map(({ status }) => status)).toEqual([200, 200]);
+        await invitee.agent.post('/invitations/1/accept').expect(200);
+        expect(
+          await app
+            .get(DataSource)
+            .query('SELECT project_id, member_id FROM project_members'),
+        ).toEqual([{ project_id: 1, member_id: 2 }]);
+      });
+
+      it('does not restore membership from a used invitation after leaving', async () => {
+        await invitee.agent.post('/invitations/1/accept').expect(200);
+        // Arrange a leave result; the leave API is a later implementation slice.
+        await app
+          .get(DataSource)
+          .query('DELETE FROM project_members WHERE member_id = 2');
+        await invitee.agent.post('/invitations/1/accept').expect(409);
+        expect(
+          await app.get(DataSource).query('SELECT * FROM project_members'),
+        ).toEqual([]);
+      });
+
+      it('rejects rejected invitations and pending invitations to existing members', async () => {
+        await app
+          .get(DataSource)
+          .query("UPDATE invitations SET status = 'rejected' WHERE id = 1");
+        await invitee.agent.post('/invitations/1/accept').expect(409);
+        await app
+          .get(DataSource)
+          .query("UPDATE invitations SET status = 'pending' WHERE id = 1");
+        await app
+          .get(DataSource)
+          .query(
+            'INSERT INTO project_members (project_id, member_id) VALUES (1, 2)',
+          );
+        await invitee.agent.post('/invitations/1/accept').expect(409);
+        expect(
+          await app.get(DataSource).query('SELECT status FROM invitations'),
+        ).toEqual([{ status: 'pending' }]);
+      });
+
+      it('keeps pending invitations valid after the project changes owner', async () => {
+        await createAuthenticatedClient('new-owner@example.com');
+        // Arrange transferred ownership, not a test of the future transfer API.
+        await app
+          .get(DataSource)
+          .query('UPDATE projects SET owner_id = 3 WHERE id = 1');
+        const response = await invitee.agent
+          .post('/invitations/1/accept')
+          .expect(200);
+        expect(response.body).toMatchObject({
+          inviterId: 1,
+          inviteeId: 2,
+          status: 'accepted',
+        });
+      });
+
+      it('treats a later owner as already authorized without recreating ordinary membership', async () => {
+        await invitee.agent.post('/invitations/1/accept').expect(200);
+        await app
+          .get(DataSource)
+          .query('UPDATE projects SET owner_id = 2 WHERE id = 1');
+        await app
+          .get(DataSource)
+          .query('DELETE FROM project_members WHERE member_id = 2');
+        await invitee.agent.post('/invitations/1/accept').expect(200);
+        expect(
+          await app.get(DataSource).query('SELECT * FROM project_members'),
+        ).toEqual([]);
+      });
+
+      it('rolls back accepted status if member insertion fails and permits retry', async () => {
+        const database = app.get(DataSource);
+        await database.query(`
+          CREATE FUNCTION test_reject_membership() RETURNS trigger LANGUAGE plpgsql AS $$
+          BEGIN RAISE EXCEPTION 'simulated membership write failure'; END; $$;
+          CREATE TRIGGER test_reject_membership BEFORE INSERT ON project_members
+          FOR EACH ROW EXECUTE FUNCTION test_reject_membership();
+        `);
+        try {
+          await invitee.agent.post('/invitations/1/accept').expect(500);
+          expect(
+            await database.query('SELECT status FROM invitations'),
+          ).toEqual([{ status: 'pending' }]);
+          expect(await database.query('SELECT * FROM project_members')).toEqual(
+            [],
+          );
+        } finally {
+          await database.query(
+            'DROP TRIGGER test_reject_membership ON project_members',
+          );
+          await database.query('DROP FUNCTION test_reject_membership()');
+        }
+        await invitee.agent.post('/invitations/1/accept').expect(200);
+      });
+    });
+
     it('requires a logged-in Session', async () => {
       await request(app.getHttpServer())
         .post('/projects/1/invitations')

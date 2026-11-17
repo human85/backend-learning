@@ -8,12 +8,13 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 
 - 路径：API 位于 `apps/mini-saas/`，浏览器客户端位于 `apps/mini-saas-web/`
 - 技术栈：Node.js、TypeScript、NestJS 11、TypeORM、PostgreSQL 17、React 19、Vite 8、TanStack Query、Tailwind CSS、shadcn/ui、Jest、Vitest
-- 阶段：第一轮闭环与 R2 已完成；R3 schema、创建和收到邀请列表 HTTP 切片已验证，接受/拒绝及转让/退出尚待实现。具体下一步见 [当前进度](../learning-progress.md)。
+- 阶段：第一轮闭环与 R2 已完成；R3 schema、创建/列表/接受邀请已验证，成员只读项目权限、拒绝及转让/退出尚待实现。具体下一步见 [当前进度](../learning-progress.md)。
 - R3 实现草案：[项目邀请、转让与退出](mini-saas-invitations.md)，区分已确认规则、实现建议和未执行的验收计划。
 - 30 天里程碑：四周全部完成
 - 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；认证支持注册、登录、当前用户和注销；已登录用户只能 CRUD 自己的项目
 - 创建邀请：所有者可 POST /projects/:projectId/invitations，仅提交 inviteeId；201 返回待接受记录，不创建成员关系。已有成员/重复 pending/自己为 409，非所有者或资源缺失为 404，输入非法为 400；只在隔离数据库验证，未验收线上。
-- 收到邀请：GET /invitations 仅按 Session 用户作为 inviteeId 查询，200 返回各状态记录、id 倒序；无邀请为 []，不支持查询参数，额外参数为 400，响应 no-store；未实现分页或邀请处理。
+- 收到邀请：GET /invitations 仅按 Session 用户作为 inviteeId 查询，200 返回各状态记录、id 倒序；无邀请为 []，不支持查询参数，额外参数为 400，响应 no-store；列表未分页。
+- 接受邀请：POST /invitations/:invitationId/accept，无业务 body 或 query；仅 Session 受邀人可处理。pending 更新和成员写入同事务，已接受且仍有项目身份可重试 200，已退出不可用旧邀请重建成员。54 单测/73 e2e 与故障回滚已验证；项目 GET 尚未接入成员身份，接受不代表完整成员 UI 已交付。
 - 数据库与认证：注册和登录使用 Argon2id；PostgreSQL 保存服务端 Session；Project.ownerId 非空外键指向 User，所有查询按当前用户隔离
 
 ## 已完成
