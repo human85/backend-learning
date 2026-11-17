@@ -32,6 +32,14 @@ pnpm --filter @backend-learning/mini-saas db:migration:run:test
 
 同样需要将 `.env.test.local` 中的 `YOUR_USER` 替换为本机 PostgreSQL 用户。
 
+成员/邀请的 schema 测试可单独运行：
+
+```bash
+pnpm --filter @backend-learning/mini-saas test:e2e --runInBand collaboration-schema
+```
+
+该测试优先读取环境变量 `DATABASE_URL`，否则读取 `.env.test.local`；仅接受本机 `mini_saas_test` 配置。它不修改这个数据库，而是连接同一服务器的 `postgres` 管理库，创建唯一命名的临时数据库，在其中执行迁移与约束测试，结束后删除。测试账号需要有 `CREATEDB` 权限；CI 的临时 PostgreSQL 账号满足要求。其他现有 e2e 仍会清理 `mini_saas_test`，所以运行完整 e2e 前仍需确认隔离环境。
+
 ## 从仓库根目录运行
 
 ```bash
