@@ -4,10 +4,12 @@ import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { ProjectEntity } from './project.entity';
 import { ProjectsController } from './projects.controller';
 import { ProjectsService } from './projects.service';
+import { ProjectCollaborationController } from './project-collaboration.controller';
+import { ProjectCollaborationService } from './project-collaboration.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([ProjectEntity])],
-  controllers: [ProjectsController],
-  providers: [ProjectsService, SessionAuthGuard],
+  controllers: [ProjectsController, ProjectCollaborationController],
+  providers: [ProjectsService, ProjectCollaborationService, SessionAuthGuard],
 })
 export class ProjectsModule {}

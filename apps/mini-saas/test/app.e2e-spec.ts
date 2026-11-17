@@ -828,6 +828,306 @@ describe('AppController (e2e)', () => {
       });
     });
 
+    describe('transferring ownership and leaving a project', () => {
+      beforeEach(async () => {
+        await owner.agent
+          .post('/projects/1/invitations')
+          .send({ inviteeId: 2 })
+          .expect(201);
+        await invitee.agent.post('/invitations/1/accept').expect(200);
+      });
+
+      async function membershipIds() {
+        return app
+          .get(DataSource)
+          .query<Array<{ member_id: number }>>(
+            'SELECT member_id FROM project_members WHERE project_id = 1 ORDER BY member_id',
+          );
+      }
+
+      it('atomically swaps roles, preserves other members and changes management permissions', async () => {
+        const third = await createAuthenticatedClient(
+          'other-member@example.com',
+        );
+        await owner.agent
+          .post('/projects/1/invitations')
+          .send({ inviteeId: 3 })
+          .expect(201);
+        await third.agent.post('/invitations/2/accept').expect(200);
+        await owner.agent
+          .post('/projects/1/transfer')
+          .send({ memberId: 2 })
+          .expect(204);
+        expect(await membershipIds()).toEqual([
+          { member_id: 1 },
+          { member_id: 3 },
+        ]);
+        await owner.agent
+          .get('/projects/1')
+          .expect(200)
+          .expect({ id: 1, name: 'Invitation project', ownerId: 2 });
+        await owner.agent
+          .patch('/projects/1')
+          .send({ name: 'Old owner write' })
+          .expect(404);
+        await owner.agent.delete('/projects/1').expect(404);
+        await owner.agent
+          .post('/projects/1/invitations')
+          .send({ inviteeId: 3 })
+          .expect(404);
+        await invitee.agent
+          .patch('/projects/1')
+          .send({ name: 'New owner write' })
+          .expect(200);
+      });
+
+      it('requires transfer before the owner can leave, then removes only their membership', async () => {
+        await owner.agent.delete('/projects/1/members/me').expect(409);
+        await owner.agent
+          .post('/projects/1/transfer')
+          .send({ memberId: 2 })
+          .expect(204);
+        await owner.agent.delete('/projects/1/members/me').expect(204);
+        await owner.agent.get('/projects/1').expect(404);
+        await owner.agent.get('/projects').expect(200).expect([]);
+        await owner.agent.delete('/projects/1/members/me').expect(404);
+        await invitee.agent.delete('/projects/1/members/me').expect(409);
+        await invitee.agent.get('/projects/1').expect(200);
+        expect(await membershipIds()).toEqual([]);
+      });
+
+      it('rejects unauthorized transfers, self transfer, non-members and spoofed input', async () => {
+        await request(app.getHttpServer())
+          .post('/projects/1/transfer')
+          .send({ memberId: 2 })
+          .expect(401);
+        await request(app.getHttpServer())
+          .delete('/projects/1/members/me')
+          .expect(401);
+        await invitee.agent
+          .post('/projects/1/transfer')
+          .send({ memberId: 1 })
+          .expect(404);
+        await owner.agent
+          .post('/projects/999/transfer')
+          .send({ memberId: 2 })
+          .expect(404);
+        await owner.agent
+          .post('/projects/1/transfer')
+          .send({ memberId: 1 })
+          .expect(409);
+        await owner.agent
+          .post('/projects/1/transfer')
+          .send({ memberId: 999 })
+          .expect(409);
+        for (const body of [
+          {},
+          { memberId: '2' },
+          { memberId: 0 },
+          { memberId: 2147483648 },
+          { memberId: 2, ownerId: 2 },
+        ]) {
+          await owner.agent.post('/projects/1/transfer').send(body).expect(400);
+        }
+        for (const id of ['abc', '0', '-1', '2147483648']) {
+          await owner.agent
+            .post(`/projects/${id}/transfer`)
+            .send({ memberId: 2 })
+            .expect(400);
+          await invitee.agent.delete(`/projects/${id}/members/me`).expect(400);
+        }
+        await owner.agent
+          .post('/projects/1/transfer?ownerId=2')
+          .send({ memberId: 2 })
+          .expect(400);
+        await invitee.agent
+          .delete('/projects/1/members/me')
+          .send({ memberId: 1 })
+          .expect(400);
+        await invitee.agent
+          .delete('/projects/1/members/me?memberId=1')
+          .expect(400);
+        expect(await membershipIds()).toEqual([{ member_id: 2 }]);
+        expect(
+          await app.get(DataSource).query('SELECT owner_id FROM projects'),
+        ).toEqual([{ owner_id: 1 }]);
+      });
+
+      it('does not treat membership of another project as eligibility to transfer or leave', async () => {
+        const other = await createAuthenticatedClient(
+          'other-project-member@example.com',
+        );
+        await owner.agent
+          .post('/projects')
+          .send({ name: 'Another project' })
+          .expect(201);
+        await owner.agent
+          .post('/projects/2/invitations')
+          .send({ inviteeId: 3 })
+          .expect(201);
+        await other.agent.post('/invitations/2/accept').expect(200);
+        await owner.agent
+          .post('/projects/1/transfer')
+          .send({ memberId: 3 })
+          .expect(409);
+        await other.agent.delete('/projects/1/members/me').expect(404);
+        await other.agent.delete('/projects/999/members/me').expect(404);
+        await other.agent.get('/projects/2').expect(200);
+        expect(await membershipIds()).toEqual([{ member_id: 2 }]);
+      });
+
+      it('lets a member leave without deleting the project or invitation history', async () => {
+        await invitee.agent.delete('/projects/1/members/me').expect(204);
+        await invitee.agent.get('/projects/1').expect(404);
+        await invitee.agent.post('/invitations/1/accept').expect(409);
+        await invitee.agent.delete('/projects/1/members/me').expect(404);
+        await owner.agent.get('/projects/1').expect(200);
+        expect(
+          await app.get(DataSource).query('SELECT status FROM invitations'),
+        ).toEqual([{ status: 'accepted' }]);
+        await owner.agent
+          .post('/projects/1/invitations')
+          .send({ inviteeId: 2 })
+          .expect(201);
+        await invitee.agent.post('/invitations/2/accept').expect(200);
+        await invitee.agent.get('/projects/1').expect(200);
+      });
+
+      it('allows only one of two concurrent transfers from the same owner', async () => {
+        const third = await createAuthenticatedClient(
+          'second-target@example.com',
+        );
+        await owner.agent
+          .post('/projects/1/invitations')
+          .send({ inviteeId: 3 })
+          .expect(201);
+        await third.agent.post('/invitations/2/accept').expect(200);
+        const results = await Promise.all([
+          owner.agent.post('/projects/1/transfer').send({ memberId: 2 }),
+          owner.agent.post('/projects/1/transfer').send({ memberId: 3 }),
+        ]);
+        expect(results.map(({ status }) => status).sort()).toEqual([204, 404]);
+        const winner = results[0].status === 204 ? 2 : 3;
+        expect(
+          await app.get(DataSource).query('SELECT owner_id FROM projects'),
+        ).toEqual([{ owner_id: winner }]);
+        expect(await membershipIds()).toEqual([
+          { member_id: 1 },
+          { member_id: winner === 2 ? 3 : 2 },
+        ]);
+      });
+
+      it('rolls back owner change and member deletion if adding the former owner fails', async () => {
+        const database = app.get(DataSource);
+        await database.query(`
+          CREATE FUNCTION test_fail_former_owner() RETURNS trigger LANGUAGE plpgsql AS $$
+          BEGIN RAISE EXCEPTION 'simulated former owner write failure'; END; $$;
+          CREATE TRIGGER test_fail_former_owner BEFORE INSERT ON project_members
+          FOR EACH ROW WHEN (NEW.member_id = 1) EXECUTE FUNCTION test_fail_former_owner();
+        `);
+        try {
+          await owner.agent
+            .post('/projects/1/transfer')
+            .send({ memberId: 2 })
+            .expect(500);
+          expect(await database.query('SELECT owner_id FROM projects')).toEqual(
+            [{ owner_id: 1 }],
+          );
+          expect(await membershipIds()).toEqual([{ member_id: 2 }]);
+        } finally {
+          await database.query(
+            'DROP TRIGGER test_fail_former_owner ON project_members',
+          );
+          await database.query('DROP FUNCTION test_fail_former_owner()');
+        }
+        await owner.agent
+          .post('/projects/1/transfer')
+          .send({ memberId: 2 })
+          .expect(204);
+      });
+
+      it('keeps earlier pending invitations valid after a real transfer', async () => {
+        const third = await createAuthenticatedClient(
+          'pending-after-transfer@example.com',
+        );
+        await owner.agent
+          .post('/projects/1/invitations')
+          .send({ inviteeId: 3 })
+          .expect(201);
+        await owner.agent
+          .post('/projects/1/transfer')
+          .send({ memberId: 2 })
+          .expect(204);
+        const accepted = await third.agent
+          .post('/invitations/2/accept')
+          .expect(200);
+        expect(accepted.body).toMatchObject({
+          inviterId: 1,
+          inviteeId: 3,
+          status: 'accepted',
+        });
+        expect(await membershipIds()).toEqual([
+          { member_id: 1 },
+          { member_id: 3 },
+        ]);
+      });
+
+      it.each(['transfer-first', 'leave-first'])(
+        'serializes target departure with transfer: %s',
+        async (order) => {
+          const database = app.get(DataSource);
+          const blocker = database.createQueryRunner();
+          await blocker.connect();
+          await blocker.startTransaction();
+          const requests: Array<Promise<request.Response>> = [];
+          async function waitForQueue(size: number) {
+            const deadline = Date.now() + 750;
+            while (Date.now() < deadline) {
+              const rows = await database.query<Array<{ waiting: number }>>(
+                "SELECT count(*)::int AS waiting FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid() AND wait_event_type = 'Lock' AND query LIKE '%FOR UPDATE%'",
+              );
+              if (rows[0].waiting >= size) return;
+              await new Promise((resolve) => setTimeout(resolve, 10));
+            }
+            throw new Error('Expected project lock queue did not form');
+          }
+          const transfer = () =>
+            owner.agent
+              .post('/projects/1/transfer')
+              .send({ memberId: 2 })
+              .then((response) => response);
+          const leave = () =>
+            invitee.agent
+              .delete('/projects/1/members/me')
+              .then((response) => response);
+          try {
+            await blocker.query(
+              'SELECT id FROM projects WHERE id = 1 FOR UPDATE',
+            );
+            requests.push(order === 'transfer-first' ? transfer() : leave());
+            await waitForQueue(1);
+            requests.push(order === 'transfer-first' ? leave() : transfer());
+            await waitForQueue(2);
+            await blocker.commitTransaction();
+          } finally {
+            if (blocker.isTransactionActive)
+              await blocker.rollbackTransaction();
+            await blocker.release();
+            await Promise.allSettled(requests);
+          }
+          const responses = await Promise.all(requests);
+          expect(responses.map(({ status }) => status)).toEqual([204, 409]);
+          const expectedOwner = order === 'transfer-first' ? 2 : 1;
+          expect(await database.query('SELECT owner_id FROM projects')).toEqual(
+            [{ owner_id: expectedOwner }],
+          );
+          expect(await membershipIds()).toEqual(
+            order === 'transfer-first' ? [{ member_id: 1 }] : [],
+          );
+        },
+      );
+    });
+
     describe('rejecting a received invitation', () => {
       beforeEach(async () => {
         await owner.agent

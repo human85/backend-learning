@@ -871,3 +871,14 @@
 - 故障实验在临时隔离 PostgreSQL 17 上创建仅拒绝更新触发失败的 BEFORE UPDATE 触发器，接口安全 500 后仍 pending、成员为空；finally 删除触发器/函数，恢复后可拒绝 204。完整 84 个 e2e（4 suite）、60 单元测试（13 suite）、build 与变更文件只读 lint 通过；数据库实例和目录结束后清理。
 - 继续保存 feat/project-member-read-access，未合并 main、未变更开发/生产库、无新 migration 或前端/线上验收。整理路线图为引用当前快照，移除已经过时的逐接口完成列表，不改变 R3 范围或退出条件。
 - 下一步先短复测拒绝重试 409 是否能证明先前结果，再实现转让/退出；前端角色按钮与发布迁移验证仍待完成。
+
+## 2026-11-17｜转让与退出：原子角色切换和锁顺序
+
+- 复测记录：学习者判断拒绝重试 409 不能证明首次成功，但表示不知道原因；Agent 补充 accepted/rejected 均可能冲突、需查询最终状态，定位具体请求另需日志。未将理由补充算作独立掌握。
+- 本轮主目标是转让的角色一致性；为实际验证互斥协议，同时接入最小退出接口。新增 ProjectCollaborationService/Controller 与 DTO，ProjectsModule 注册；无新 schema、依赖或迁移。
+- POST /projects/:projectId/transfer 从 Session 确认当前 owner，只接受目标用户 memberId。项目锁后验证并锁定本项目现有成员，条件更新 owner 并检查一行、删除目标成员并检查一行、插入原 owner 成员；任何异常全回滚。旧 pending 邀请不受转让影响，保留历史 inviter。
+- DELETE /projects/:projectId/members/me 初步排除无关用户，项目锁后重查 owner，普通成员删除自身关系 204，owner 必须先转让（409）。非成员/重复退出/项目不存在为 404，是 Agent 沿既有删除/归属隐藏方式的首版合同选择；body/query 不得指定他人身份，不删项目或邀请历史。
+- 新增 6 个 unit、10 个 HTTP 场景，覆盖角色切换、先转让后退出、身份/输入/跨项目隔离、退出后新邀再加入、并发两转让、旧 pending 有效。两连接锁队列分别保证转让先与退出先排队，两个真实接口并发完成后先者 204、后者 409；owner 存在且成员记录一致。
+- 故障实验：隔离 PostgreSQL 17 中，临时触发器令插入原 owner 成员失败，500 后 owner 仍为原用户、目标成员仍在；finally 清理故障，再试转让 204。完整 94 个 e2e（4 suite）、66 单元测试（14 suite，JSON 报告核对）、build 与变更文件只读 ESLint 通过，临时实例/目录清理。首次单测终端摘要不完整，补查 JSON 报告确认，并非凭 build 成功推断单测通过。
+- 本轮为 Agent 实现和演示，未新增学习者手写或迁移题。继续 feat/project-member-read-access，不合入 main、不操作开发/生产数据库或部署；前端和线上验收未完成。记录 D-024 的所有者来源与共同项目锁协议。
+- 下一步补充成员列表供转让选择，接入真实前端完整流程与角色按钮，随后按目标版本和 schema 证据做部署验收；R3 尚未完成。
