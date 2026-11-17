@@ -696,6 +696,138 @@ describe('AppController (e2e)', () => {
       expect(response.body).toMatchObject([{ inviteeId: 2 }]);
     });
 
+    describe('project member read-only access', () => {
+      beforeEach(async () => {
+        await owner.agent
+          .post('/projects/1/invitations')
+          .send({ inviteeId: 2 })
+          .expect(201);
+      });
+
+      it('permits reads only after acceptance and lists owned plus joined projects', async () => {
+        await invitee.agent.get('/projects/1').expect(404);
+        await invitee.agent.get('/projects').expect(200).expect([]);
+        await invitee.agent.post('/invitations/1/accept').expect(200);
+        await invitee.agent
+          .get('/projects/1')
+          .expect(200)
+          .expect({ id: 1, name: 'Invitation project', ownerId: 1 });
+        await invitee.agent
+          .post('/projects')
+          .send({ name: 'My own project' })
+          .expect(201);
+        const list = await invitee.agent.get('/projects').expect(200);
+        expect(list.body).toEqual([
+          { id: 1, name: 'Invitation project', ownerId: 1 },
+          { id: 2, name: 'My own project', ownerId: 2 },
+        ]);
+        await owner.agent
+          .get('/projects')
+          .expect(200)
+          .expect([{ id: 1, name: 'Invitation project', ownerId: 1 }]);
+      });
+
+      it('does not grant management permissions to a member who can read', async () => {
+        await invitee.agent.post('/invitations/1/accept').expect(200);
+        await invitee.agent.get('/projects/1').expect(200);
+        await invitee.agent
+          .patch('/projects/1')
+          .send({ name: 'Unauthorized change' })
+          .expect(404);
+        await invitee.agent.delete('/projects/1').expect(404);
+        await invitee.agent
+          .post('/projects/1/invitations')
+          .send({ inviteeId: 1 })
+          .expect(404);
+        await owner.agent
+          .get('/projects/1')
+          .expect(200)
+          .expect({ id: 1, name: 'Invitation project', ownerId: 1 });
+        await owner.agent
+          .patch('/projects/1')
+          .send({ name: 'Owner change' })
+          .expect(200);
+        await invitee.agent
+          .get('/projects/1')
+          .expect(200)
+          .expect({ id: 1, name: 'Owner change', ownerId: 1 });
+      });
+
+      it('rejects a rename when ownership changes between lookup and UPDATE', async () => {
+        const database = app.get(DataSource);
+        const blocker = database.createQueryRunner();
+        await blocker.connect();
+        await blocker.startTransaction();
+        let pending: Promise<request.Response> | undefined;
+        try {
+          const [{ pid }] = await blocker.query<Array<{ pid: number }>>(
+            'SELECT pg_backend_pid() AS pid',
+          );
+          await blocker.query('UPDATE projects SET owner_id = 2 WHERE id = 1');
+          pending = owner.agent
+            .patch('/projects/1')
+            .send({ name: 'Stale owner change' })
+            .then((response) => response);
+          let waiting = false;
+          const deadline = Date.now() + 1200;
+          while (!waiting && Date.now() < deadline) {
+            const rows = await database.query<Array<{ waiting: boolean }>>(
+              'SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE $1 = ANY(pg_blocking_pids(pid))) AS waiting',
+              [pid],
+            );
+            waiting = rows[0].waiting;
+            if (!waiting)
+              await new Promise((resolve) => setTimeout(resolve, 10));
+          }
+          expect(waiting).toBe(true);
+          await blocker.commitTransaction();
+        } finally {
+          if (blocker.isTransactionActive) await blocker.rollbackTransaction();
+          await blocker.release();
+          if (pending) await pending;
+        }
+        expect((await pending).status).toBe(404);
+        expect(
+          await database.query(
+            'SELECT owner_id, name FROM projects WHERE id = 1',
+          ),
+        ).toEqual([{ owner_id: 2, name: 'Invitation project' }]);
+      });
+
+      it('checks membership for the requested project and user rather than any membership', async () => {
+        const stranger = await createAuthenticatedClient(
+          'stranger@example.com',
+        );
+        await invitee.agent.post('/invitations/1/accept').expect(200);
+        await owner.agent
+          .post('/projects')
+          .send({ name: 'Private project' })
+          .expect(201);
+        await invitee.agent.get('/projects/2').expect(404);
+        await stranger.agent.get('/projects/1').expect(404);
+        await stranger.agent.get('/projects').expect(200).expect([]);
+        expect((await invitee.agent.get('/projects').expect(200)).body).toEqual(
+          [{ id: 1, name: 'Invitation project', ownerId: 1 }],
+        );
+      });
+
+      it('removes read access when the member relation is deleted, regardless of invitation history', async () => {
+        await invitee.agent.post('/invitations/1/accept').expect(200);
+        await invitee.agent.get('/projects/1').expect(200);
+        // Arrange a leave result; the leave endpoint is still a later slice.
+        await app
+          .get(DataSource)
+          .query(
+            'DELETE FROM project_members WHERE project_id = 1 AND member_id = 2',
+          );
+        await invitee.agent.get('/projects/1').expect(404);
+        await invitee.agent.get('/projects').expect(200).expect([]);
+        expect(
+          await app.get(DataSource).query('SELECT status FROM invitations'),
+        ).toEqual([{ status: 'accepted' }]);
+      });
+    });
+
     describe('accepting a received invitation', () => {
       beforeEach(async () => {
         await owner.agent

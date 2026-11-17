@@ -7,12 +7,21 @@ import { ProjectsService } from './projects.service';
 describe('ProjectsService', () => {
   const ownerId = 10;
   let projectsService: ProjectsService;
+  const readableQuery = {
+    leftJoin: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    getMany: jest.fn(),
+    getOne: jest.fn(),
+  };
   const projectsRepository = {
     create: jest.fn(),
     save: jest.fn(),
-    find: jest.fn(),
+    createQueryBuilder: jest.fn().mockReturnValue(readableQuery),
     findOneBy: jest.fn(),
     delete: jest.fn(),
+    update: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -32,13 +41,9 @@ describe('ProjectsService', () => {
   });
 
   it('should return an empty project list', async () => {
-    projectsRepository.find.mockResolvedValue([]);
+    readableQuery.getMany.mockResolvedValue([]);
 
     await expect(projectsService.findAll(ownerId)).resolves.toEqual([]);
-    expect(projectsRepository.find).toHaveBeenCalledWith({
-      where: { ownerId },
-      order: { id: 'ASC' },
-    });
   });
 
   it('should create and save a project', async () => {
@@ -59,25 +64,17 @@ describe('ProjectsService', () => {
 
   it('should find a project by id', async () => {
     const project = { id: 1, name: 'My Project', ownerId };
-    projectsRepository.findOneBy.mockResolvedValue(project);
+    readableQuery.getOne.mockResolvedValue(project);
 
     await expect(projectsService.findOne(1, ownerId)).resolves.toEqual(project);
-    expect(projectsRepository.findOneBy).toHaveBeenCalledWith({
-      id: 1,
-      ownerId,
-    });
   });
 
   it('should throw when a project is missing or belongs to another user', async () => {
-    projectsRepository.findOneBy.mockResolvedValue(null);
+    readableQuery.getOne.mockResolvedValue(null);
 
     await expect(projectsService.findOne(999, ownerId)).rejects.toEqual(
       new NotFoundException('Project with id 999 not found'),
     );
-    expect(projectsRepository.findOneBy).toHaveBeenCalledWith({
-      id: 999,
-      ownerId,
-    });
   });
 
   it('should update an existing project', async () => {
@@ -86,11 +83,7 @@ describe('ProjectsService', () => {
       name: 'Old Name',
       ownerId,
     });
-    projectsRepository.save.mockResolvedValue({
-      id: 1,
-      name: 'New Name',
-      ownerId,
-    });
+    projectsRepository.update.mockResolvedValue({ affected: 1 });
 
     await expect(
       projectsService.updateProject(1, 'New Name', ownerId),
@@ -99,11 +92,15 @@ describe('ProjectsService', () => {
       name: 'New Name',
       ownerId,
     });
-    expect(projectsRepository.save).toHaveBeenCalledWith({
+    expect(projectsRepository.findOneBy).toHaveBeenCalledWith({
       id: 1,
-      name: 'New Name',
       ownerId,
     });
+    expect(projectsRepository.update).toHaveBeenCalledWith(
+      { id: 1, ownerId },
+      { name: 'New Name' },
+    );
+    expect(projectsRepository.save).not.toHaveBeenCalled();
   });
 
   it('should throw when updating a missing project', async () => {
@@ -112,6 +109,37 @@ describe('ProjectsService', () => {
     await expect(
       projectsService.updateProject(999, 'New Name', ownerId),
     ).rejects.toEqual(new NotFoundException('Project with id 999 not found'));
+    expect(projectsRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('does not use a readable project to authorize updates by a member', async () => {
+    readableQuery.getOne.mockResolvedValue({
+      id: 1,
+      name: 'Readable',
+      ownerId: 20,
+    });
+    projectsRepository.findOneBy.mockResolvedValue(null);
+    await expect(
+      projectsService.updateProject(1, 'Changed', ownerId),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(readableQuery.getOne).not.toHaveBeenCalled();
+    expect(projectsRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects an update if ownership changes after the owner lookup', async () => {
+    projectsRepository.findOneBy.mockResolvedValue({
+      id: 1,
+      name: 'Old',
+      ownerId,
+    });
+    projectsRepository.update.mockResolvedValue({ affected: 0 });
+    await expect(
+      projectsService.updateProject(1, 'Changed', ownerId),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(projectsRepository.update).toHaveBeenCalledWith(
+      { id: 1, ownerId },
+      { name: 'Changed' },
+    );
     expect(projectsRepository.save).not.toHaveBeenCalled();
   });
 
