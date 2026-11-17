@@ -828,6 +828,150 @@ describe('AppController (e2e)', () => {
       });
     });
 
+    describe('rejecting a received invitation', () => {
+      beforeEach(async () => {
+        await owner.agent
+          .post('/projects/1/invitations')
+          .send({ inviteeId: 2 })
+          .expect(201);
+      });
+
+      it('rejects pending without membership and allows a new invitation with history retained', async () => {
+        const response = await invitee.agent
+          .post('/invitations/1/reject')
+          .expect(204);
+        expect(response.text).toBe('');
+        expect(
+          (await invitee.agent.get('/invitations').expect(200)).body,
+        ).toMatchObject([{ id: 1, status: 'rejected' }]);
+        expect(
+          await app.get(DataSource).query('SELECT * FROM project_members'),
+        ).toEqual([]);
+        await invitee.agent.get('/projects/1').expect(404);
+        await invitee.agent.post('/invitations/1/accept').expect(409);
+        await owner.agent
+          .post('/projects/1/invitations')
+          .send({ inviteeId: 2 })
+          .expect(201);
+        expect(
+          await app
+            .get(DataSource)
+            .query('SELECT status FROM invitations ORDER BY id'),
+        ).toEqual([{ status: 'rejected' }, { status: 'pending' }]);
+      });
+
+      it('rejects unauthenticated, wrong-recipient, missing and malformed requests without changing state', async () => {
+        await request(app.getHttpServer())
+          .post('/invitations/1/reject')
+          .expect(401);
+        await owner.agent.post('/invitations/1/reject').expect(404);
+        await invitee.agent.post('/invitations/999/reject').expect(404);
+        for (const id of ['abc', '0', '-1', '2147483648']) {
+          await invitee.agent.post(`/invitations/${id}/reject`).expect(400);
+        }
+        await invitee.agent
+          .post('/invitations/1/reject')
+          .send({ userId: 1 })
+          .expect(400);
+        await invitee.agent
+          .post('/invitations/1/reject')
+          .send({ status: 'rejected' })
+          .expect(400);
+        await invitee.agent
+          .post('/invitations/1/reject?inviteeId=1')
+          .expect(400);
+        expect(
+          await app.get(DataSource).query('SELECT status FROM invitations'),
+        ).toEqual([{ status: 'pending' }]);
+      });
+
+      it('returns conflict on repeat rejection or an accepted invitation without removing members', async () => {
+        await invitee.agent.post('/invitations/1/reject').expect(204);
+        await invitee.agent.post('/invitations/1/reject').expect(409);
+        await owner.agent
+          .post('/projects/1/invitations')
+          .send({ inviteeId: 2 })
+          .expect(201);
+        await invitee.agent.post('/invitations/2/accept').expect(200);
+        await invitee.agent.post('/invitations/2/reject').expect(409);
+        await invitee.agent.get('/projects/1').expect(200);
+        expect(
+          await app
+            .get(DataSource)
+            .query('SELECT project_id, member_id FROM project_members'),
+        ).toEqual([{ project_id: 1, member_id: 2 }]);
+        expect(
+          await app
+            .get(DataSource)
+            .query('SELECT status FROM invitations ORDER BY id'),
+        ).toEqual([{ status: 'rejected' }, { status: 'accepted' }]);
+      });
+
+      it('serializes concurrent accept and reject so only one transition succeeds', async () => {
+        const [accepted, rejected] = await Promise.all([
+          invitee.agent.post('/invitations/1/accept'),
+          invitee.agent.post('/invitations/1/reject'),
+        ]);
+        const rows = await app
+          .get(DataSource)
+          .query<Array<{ status: string }>>('SELECT status FROM invitations');
+        const members = await app
+          .get(DataSource)
+          .query<Array<{ member_id: number }>>(
+            'SELECT member_id FROM project_members',
+          );
+        if (rows[0].status === 'accepted') {
+          expect([accepted.status, rejected.status]).toEqual([200, 409]);
+          expect(members).toEqual([{ member_id: 2 }]);
+        } else {
+          expect(rows[0].status).toBe('rejected');
+          expect([accepted.status, rejected.status]).toEqual([409, 204]);
+          expect(members).toEqual([]);
+        }
+      });
+
+      it('permits only one concurrent rejection', async () => {
+        const responses = await Promise.all([
+          invitee.agent.post('/invitations/1/reject'),
+          invitee.agent.post('/invitations/1/reject'),
+        ]);
+        expect(responses.map(({ status }) => status).sort()).toEqual([
+          204, 409,
+        ]);
+        expect(
+          await app.get(DataSource).query('SELECT status FROM invitations'),
+        ).toEqual([{ status: 'rejected' }]);
+        expect(
+          await app.get(DataSource).query('SELECT * FROM project_members'),
+        ).toEqual([]);
+      });
+
+      it('keeps pending on database write failure and allows rejection after recovery', async () => {
+        const database = app.get(DataSource);
+        await database.query(`
+          CREATE FUNCTION test_reject_invitation_write() RETURNS trigger LANGUAGE plpgsql AS $$
+          BEGIN RAISE EXCEPTION 'simulated rejection write failure'; END; $$;
+          CREATE TRIGGER test_reject_invitation_write BEFORE UPDATE ON invitations
+          FOR EACH ROW WHEN (NEW.status = 'rejected') EXECUTE FUNCTION test_reject_invitation_write();
+        `);
+        try {
+          await invitee.agent.post('/invitations/1/reject').expect(500);
+          expect(
+            await database.query('SELECT status FROM invitations'),
+          ).toEqual([{ status: 'pending' }]);
+          expect(await database.query('SELECT * FROM project_members')).toEqual(
+            [],
+          );
+        } finally {
+          await database.query(
+            'DROP TRIGGER test_reject_invitation_write ON invitations',
+          );
+          await database.query('DROP FUNCTION test_reject_invitation_write()');
+        }
+        await invitee.agent.post('/invitations/1/reject').expect(204);
+      });
+    });
+
     describe('accepting a received invitation', () => {
       beforeEach(async () => {
         await owner.agent

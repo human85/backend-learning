@@ -4,7 +4,7 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { DataSource, QueryFailedError } from 'typeorm';
+import { DataSource, QueryFailedError, type EntityManager } from 'typeorm';
 import { ProjectEntity } from '../projects/project.entity';
 import { ProjectMemberEntity } from '../projects/project-member.entity';
 import { UserEntity } from '../users/user.entity';
@@ -23,28 +23,11 @@ export class InvitationsService {
       return await this.dataSource.transaction(
         'READ COMMITTED',
         async (manager) => {
-          await manager.query("SET LOCAL lock_timeout = '2s'");
-          // First locate the project without taking an invitation lock. Every
-          // writer must acquire the project lock before locking its invitations.
-          const reference = await manager.findOneBy(InvitationEntity, {
-            id: invitationId,
-            inviteeId: currentUserId,
-          });
-          if (!reference) throw new NotFoundException('Invitation not found');
-          const project = await manager.findOne(ProjectEntity, {
-            where: { id: reference.projectId },
-            lock: { mode: 'pessimistic_write' },
-          });
-          if (!project) throw new NotFoundException('Invitation not found');
-          const invitation = await manager.findOne(InvitationEntity, {
-            where: {
-              id: invitationId,
-              projectId: project.id,
-              inviteeId: currentUserId,
-            },
-            lock: { mode: 'pessimistic_write' },
-          });
-          if (!invitation) throw new NotFoundException('Invitation not found');
+          const { project, invitation } = await this.lockReceived(
+            manager,
+            invitationId,
+            currentUserId,
+          );
           const hasAccess =
             project.ownerId === currentUserId ||
             (await manager.existsBy(ProjectMemberEntity, {
@@ -101,6 +84,74 @@ export class InvitationsService {
       }
       throw error;
     }
+  }
+
+  async rejectInvitation(
+    invitationId: number,
+    currentUserId: number,
+  ): Promise<void> {
+    try {
+      await this.dataSource.transaction('READ COMMITTED', async (manager) => {
+        const { invitation } = await this.lockReceived(
+          manager,
+          invitationId,
+          currentUserId,
+        );
+        if (invitation.status !== 'pending') {
+          throw new ConflictException('Invitation is no longer pending');
+        }
+        const result = await manager.update(
+          InvitationEntity,
+          {
+            id: invitationId,
+            projectId: invitation.projectId,
+            inviteeId: currentUserId,
+            status: 'pending',
+          },
+          { status: 'rejected' },
+        );
+        if (result.affected !== 1) {
+          throw new ConflictException('Invitation is no longer pending');
+        }
+      });
+    } catch (error) {
+      if (
+        error instanceof QueryFailedError &&
+        (error.driverError as { code?: string }).code === '55P03'
+      ) {
+        throw new ServiceUnavailableException('Project is busy; retry later');
+      }
+      throw error;
+    }
+  }
+
+  private async lockReceived(
+    manager: EntityManager,
+    invitationId: number,
+    currentUserId: number,
+  ) {
+    await manager.query("SET LOCAL lock_timeout = '2s'");
+    // Locate first, then always lock project -> invitation and recheck identity.
+    const reference = await manager.findOneBy(InvitationEntity, {
+      id: invitationId,
+      inviteeId: currentUserId,
+    });
+    if (!reference) throw new NotFoundException('Invitation not found');
+    const project = await manager.findOne(ProjectEntity, {
+      where: { id: reference.projectId },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (!project) throw new NotFoundException('Invitation not found');
+    const invitation = await manager.findOne(InvitationEntity, {
+      where: {
+        id: invitationId,
+        projectId: project.id,
+        inviteeId: currentUserId,
+      },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (!invitation) throw new NotFoundException('Invitation not found');
+    return { project, invitation };
   }
 
   async listReceived(currentUserId: number): Promise<InvitationResponseDto[]> {

@@ -16,6 +16,7 @@ import {
   ApiConflictResponse,
   ApiCookieAuth,
   ApiOkResponse,
+  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiParam,
   ApiServiceUnavailableResponse,
@@ -37,6 +38,30 @@ import { InvitationsService } from './invitations.service';
 export class InvitationsController {
   constructor(private readonly invitationsService: InvitationsService) {}
 
+  @Post(':invitationId/reject')
+  @HttpCode(204)
+  @ApiParam({
+    name: 'invitationId',
+    schema: { type: 'integer', minimum: 1, maximum: 2147483647 },
+  })
+  @ApiNoContentResponse({ description: 'Invitation rejected' })
+  @ApiBadRequestResponse({ description: 'Invalid ID or unexpected input' })
+  @ApiNotFoundResponse({ description: 'Invitation not found for current user' })
+  @ApiConflictResponse({ description: 'Invitation is no longer pending' })
+  @ApiServiceUnavailableResponse({ description: 'Project lock wait timed out' })
+  reject(
+    @Param() params: InvitationIdParamsDto,
+    @Session() session: AuthenticatedSession,
+    @Query() query: Record<string, unknown>,
+    @Body() body: unknown,
+  ): Promise<void> {
+    this.assertNoActionInput(query, body);
+    return this.invitationsService.rejectInvitation(
+      Number(params.invitationId),
+      session.userId,
+    );
+  }
+
   @Post(':invitationId/accept')
   @HttpCode(200)
   @ApiParam({
@@ -54,18 +79,7 @@ export class InvitationsController {
     @Query() query: Record<string, unknown>,
     @Body() body: unknown,
   ): Promise<InvitationResponseDto> {
-    if (
-      Object.keys(query).length > 0 ||
-      (body !== undefined &&
-        (body === null ||
-          typeof body !== 'object' ||
-          Array.isArray(body) ||
-          Object.keys(body).length > 0))
-    ) {
-      throw new BadRequestException(
-        'Acceptance does not accept body or query fields',
-      );
-    }
+    this.assertNoActionInput(query, body);
     return this.invitationsService.acceptInvitation(
       Number(params.invitationId),
       session.userId,
@@ -84,5 +98,23 @@ export class InvitationsController {
       throw new BadRequestException('Query parameters are not supported');
     }
     return this.invitationsService.listReceived(session.userId);
+  }
+
+  private assertNoActionInput(
+    query: Record<string, unknown>,
+    body: unknown,
+  ): void {
+    if (
+      Object.keys(query).length > 0 ||
+      (body !== undefined &&
+        (body === null ||
+          typeof body !== 'object' ||
+          Array.isArray(body) ||
+          Object.keys(body).length > 0))
+    ) {
+      throw new BadRequestException(
+        'Invitation action does not accept body or query fields',
+      );
+    }
   }
 }
