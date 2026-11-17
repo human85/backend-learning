@@ -9,6 +9,7 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 路径：API 位于 `apps/mini-saas/`，浏览器客户端位于 `apps/mini-saas-web/`
 - 技术栈：Node.js、TypeScript、NestJS 11、TypeORM、PostgreSQL 17、React 19、Vite 8、TanStack Query、Tailwind CSS、shadcn/ui、Jest、Vitest
 - 阶段：第一轮闭环与 R2 已完成；当前进入 R3 项目成员邀请需求拆解，邀请/成员业务实现尚未开始。具体下一步见 [当前进度](../learning-progress.md)。
+- R3 实现草案：[项目邀请、转让与退出](mini-saas-invitations.md)，区分已确认规则、实现建议和未执行的验收计划。
 - 30 天里程碑：四周全部完成
 - 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；认证支持注册、登录、当前用户和注销；已登录用户只能 CRUD 自己的项目
 - 数据库与认证：注册和登录使用 Argon2id；PostgreSQL 保存服务端 Session；Project.ownerId 非空外键指向 User，所有查询按当前用户隔离
