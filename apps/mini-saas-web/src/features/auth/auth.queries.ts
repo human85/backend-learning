@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import {
   queryOptions,
+  type QueryClient,
   useMutation,
   useQuery,
   useQueryClient,
@@ -15,6 +17,18 @@ import {
 } from './auth.api';
 
 export const currentUserQueryKey = ['auth', 'current-user'] as const;
+
+const sessionChannel =
+  typeof window !== 'undefined' && 'BroadcastChannel' in window
+    ? new BroadcastChannel('mini-saas-session')
+    : undefined;
+
+async function updateSession(client: QueryClient, user: PublicUser | null) {
+  await client.cancelQueries({ queryKey: currentUserQueryKey });
+  client.removeQueries({ queryKey: collaborationQueryKey });
+  client.setQueryData(currentUserQueryKey, user);
+  sessionChannel?.postMessage('changed');
+}
 
 export async function loadCurrentUser(): Promise<PublicUser | null> {
   try {
@@ -36,6 +50,20 @@ export const currentUserQueryOptions = queryOptions({
 });
 
 export function useCurrentUserQuery() {
+  const client = useQueryClient();
+
+  useEffect(() => {
+    function handleSessionChange() {
+      // Cookies are shared by tabs. Check the new identity before borrowing its cache key.
+      void client.resetQueries({ queryKey: currentUserQueryKey });
+      client.removeQueries({ queryKey: collaborationQueryKey });
+    }
+
+    sessionChannel?.addEventListener('message', handleSessionChange);
+    return () =>
+      sessionChannel?.removeEventListener('message', handleSessionChange);
+  }, [client]);
+
   return useQuery(currentUserQueryOptions);
 }
 
@@ -48,9 +76,7 @@ export function useLoginMutation() {
 
   return useMutation({
     mutationFn: login,
-    onSuccess: (user) => {
-      queryClient.setQueryData(currentUserQueryKey, user);
-    },
+    onSuccess: (user) => updateSession(queryClient, user),
   });
 }
 
@@ -59,9 +85,6 @@ export function useLogoutMutation() {
 
   return useMutation({
     mutationFn: logout,
-    onSuccess: () => {
-      queryClient.setQueryData(currentUserQueryKey, null);
-      queryClient.removeQueries({ queryKey: collaborationQueryKey });
-    },
+    onSuccess: () => updateSession(queryClient, null),
   });
 }

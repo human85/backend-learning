@@ -22,6 +22,12 @@ const membersKey = (userId: number, projectId: number) =>
 const invitationsKey = (userId: number) =>
   [...collaborationQueryKey, userId, 'invitations'] as const;
 
+function isAmbiguousMutationError(error: Error | null) {
+  return (
+    error !== null && (!(error instanceof ApiError) || error.status >= 500)
+  );
+}
+
 export function useProjects(userId: number) {
   return useQuery({
     queryKey: projectsKey(userId),
@@ -50,8 +56,11 @@ export function useCreateProject(userId: number) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: createProject,
-    onSuccess: () =>
-      client.invalidateQueries({ queryKey: projectsKey(userId) }),
+    onSettled: async (_project, error) => {
+      if (!error || isAmbiguousMutationError(error)) {
+        await client.invalidateQueries({ queryKey: projectsKey(userId) });
+      }
+    },
   });
 }
 
@@ -112,6 +121,28 @@ export function useProjectAction(userId: number, projectId: number) {
           client.invalidateQueries(projectList),
           client.invalidateQueries(roster),
         ]);
+      } else if (isAmbiguousMutationError(error)) {
+        switch (action.type) {
+          case 'rename':
+            await client.invalidateQueries(projectList);
+            break;
+          case 'transfer':
+          case 'leave':
+            await Promise.all([
+              client.invalidateQueries(projectList),
+              client.invalidateQueries(roster),
+            ]);
+            break;
+          case 'delete':
+            await Promise.all([
+              client.invalidateQueries(projectList),
+              client.invalidateQueries(roster),
+              client.invalidateQueries(invitations),
+            ]);
+            break;
+          case 'invite':
+            break;
+        }
       }
     },
   });
@@ -131,7 +162,8 @@ export function useInvitationResponse(userId: number) {
     onSettled: async (_data, error, { projectId, response }) => {
       const conflict =
         error instanceof ApiError && [404, 409].includes(error.status);
-      if (error && !conflict) return;
+      const ambiguous = isAmbiguousMutationError(error);
+      if (error && !conflict && !ambiguous) return;
       const invitations = client.invalidateQueries({
         queryKey: invitationsKey(userId),
       });
