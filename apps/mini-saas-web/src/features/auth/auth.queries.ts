@@ -5,6 +5,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { ApiError } from '@/lib/api';
+import { collaborationQueryKey } from '@/features/projects/projects.queries';
 import {
   getCurrentUser,
   login,
@@ -60,6 +61,7 @@ export function useLogoutMutation() {
     mutationFn: logout,
     onSuccess: () => {
       queryClient.setQueryData(currentUserQueryKey, null);
+      queryClient.removeQueries({ queryKey: collaborationQueryKey });
     },
   });
 }

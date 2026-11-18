@@ -27,6 +27,8 @@ import {
   useRegisterMutation,
 } from '@/features/auth/auth.queries';
 
+import { ProjectsWorkspace } from '@/features/projects/projects-workspace';
+
 type AuthMode = 'login' | 'register';
 
 function getErrorMessage(error: unknown): string {
@@ -71,6 +73,42 @@ function App() {
 
   const activeMutation = mode === 'login' ? loginMutation : registerMutation;
 
+  if (currentUserQuery.isSuccess && currentUserQuery.data) {
+    const user = currentUserQuery.data;
+    return (
+      <main className="min-h-svh bg-muted px-4 py-8 sm:px-6 lg:py-12">
+        <div className="mx-auto grid max-w-5xl gap-6">
+          <header className="flex flex-wrap items-center justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-semibold tracking-tight">
+                Mini SaaS
+              </h1>
+              <p className="break-all text-sm text-muted-foreground">
+                {user.email} · User #{user.id}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              disabled={logoutMutation.isPending}
+              onClick={() => logoutMutation.mutate()}
+            >
+              {logoutMutation.isPending ? 'Logging out…' : 'Log out'}
+            </Button>
+          </header>
+          {logoutMutation.isError && (
+            <Alert variant="destructive">
+              <AlertTitle>Logout failed</AlertTitle>
+              <AlertDescription>
+                {getErrorMessage(logoutMutation.error)}
+              </AlertDescription>
+            </Alert>
+          )}
+          <ProjectsWorkspace key={user.id} user={user} />
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="flex min-h-svh items-center justify-center bg-muted p-6 md:p-10">
       <section className="flex w-full max-w-sm flex-col gap-6">
@@ -111,38 +149,6 @@ function App() {
                 onClick={() => currentUserQuery.refetch()}
               >
                 Try again
-              </Button>
-            </CardContent>
-          </Card>
-        ) : currentUserQuery.data ? (
-          <Card>
-            <CardHeader className="text-center">
-              <CardTitle>Signed in</CardTitle>
-              <CardDescription>
-                The API restored your identity from the server-side Session.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="break-all font-medium">
-                {currentUserQuery.data.email}
-              </p>
-              {logoutMutation.isError && (
-                <Alert className="mt-4" variant="destructive">
-                  <AlertTitle>Logout failed</AlertTitle>
-                  <AlertDescription>
-                    {getErrorMessage(logoutMutation.error)}
-                  </AlertDescription>
-                </Alert>
-              )}
-              <Button
-                className="mt-5 w-full"
-                disabled={logoutMutation.isPending}
-                onClick={() => logoutMutation.mutate()}
-              >
-                {logoutMutation.isPending && (
-                  <Spinner data-icon="inline-start" />
-                )}
-                {logoutMutation.isPending ? 'Logging out…' : 'Log out'}
               </Button>
             </CardContent>
           </Card>
