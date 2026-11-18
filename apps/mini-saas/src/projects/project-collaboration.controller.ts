@@ -3,6 +3,8 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
+  Header,
   HttpCode,
   Param,
   Post,
@@ -16,6 +18,7 @@ import {
   ApiCookieAuth,
   ApiNoContentResponse,
   ApiNotFoundResponse,
+  ApiOkResponse,
   ApiParam,
   ApiServiceUnavailableResponse,
   ApiTags,
@@ -24,6 +27,7 @@ import {
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { SESSION_COOKIE_NAME } from '../session/session.constants';
 import type { AuthenticatedSession } from '../session/session.types';
+import { ProjectMemberResponseDto } from './dto/project-member-response.dto';
 import {
   ProjectCollaborationParamsDto,
   TransferProjectDto,
@@ -37,7 +41,6 @@ import { ProjectCollaborationService } from './project-collaboration.service';
 @ApiNotFoundResponse({
   description: 'Project not found or action not permitted',
 })
-@ApiServiceUnavailableResponse({ description: 'Project lock wait timed out' })
 @ApiParam({
   name: 'projectId',
   schema: { type: 'integer', minimum: 1, maximum: 2147483647 },
@@ -47,8 +50,26 @@ import { ProjectCollaborationService } from './project-collaboration.service';
 export class ProjectCollaborationController {
   constructor(private readonly collaboration: ProjectCollaborationService) {}
 
+  @Get('members')
+  @Header('Cache-Control', 'no-store')
+  @ApiOkResponse({ type: ProjectMemberResponseDto, isArray: true })
+  listMembers(
+    @Param() params: ProjectCollaborationParamsDto,
+    @Session() session: AuthenticatedSession,
+    @Query() query: Record<string, unknown>,
+  ): Promise<ProjectMemberResponseDto[]> {
+    if (Object.keys(query).length > 0) {
+      throw new BadRequestException('Query parameters are not supported');
+    }
+    return this.collaboration.listMembers(
+      Number(params.projectId),
+      session.userId,
+    );
+  }
+
   @Post('transfer')
   @HttpCode(204)
+  @ApiServiceUnavailableResponse({ description: 'Project lock wait timed out' })
   @ApiNoContentResponse({
     description: 'Ownership transferred; previous owner is a member',
   })
@@ -72,6 +93,7 @@ export class ProjectCollaborationController {
 
   @Delete('members/me')
   @HttpCode(204)
+  @ApiServiceUnavailableResponse({ description: 'Project lock wait timed out' })
   @ApiNoContentResponse({ description: 'Current member left the project' })
   @ApiConflictResponse({
     description: 'Owner must transfer ownership before leaving',

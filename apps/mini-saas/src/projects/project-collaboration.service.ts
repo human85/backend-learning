@@ -5,12 +5,44 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { DataSource, QueryFailedError } from 'typeorm';
+import type { ProjectMemberResponseDto } from './dto/project-member-response.dto';
 import { ProjectEntity } from './project.entity';
 import { ProjectMemberEntity } from './project-member.entity';
 
 @Injectable()
 export class ProjectCollaborationService {
   constructor(private readonly dataSource: DataSource) {}
+
+  async listMembers(
+    projectId: number,
+    currentUserId: number,
+  ): Promise<ProjectMemberResponseDto[]> {
+    const rows = await this.dataSource.query<
+      Array<{ ownerId: number; memberId: number | null }>
+    >(
+      `SELECT project.owner_id AS "ownerId", membership.member_id AS "memberId"
+       FROM projects AS project
+       LEFT JOIN project_members AS membership ON membership.project_id = project.id
+       WHERE project.id = $1
+         AND (project.owner_id = $2 OR EXISTS (
+           SELECT 1 FROM project_members AS viewer
+           WHERE viewer.project_id = project.id AND viewer.member_id = $2
+         ))
+       ORDER BY membership.member_id`,
+      [projectId, currentUserId],
+    );
+
+    const firstRow = rows[0];
+    if (!firstRow) throw new NotFoundException('Project not found');
+
+    const members: ProjectMemberResponseDto[] = [
+      { userId: firstRow.ownerId, role: 'owner' },
+    ];
+    for (const { memberId } of rows) {
+      if (memberId !== null) members.push({ userId: memberId, role: 'member' });
+    }
+    return members;
+  }
 
   async transfer(
     projectId: number,

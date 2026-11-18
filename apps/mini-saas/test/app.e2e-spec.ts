@@ -828,6 +828,91 @@ describe('AppController (e2e)', () => {
       });
     });
 
+    describe('listing project members', () => {
+      it('returns the owner of a project with no ordinary members', async () => {
+        await owner.agent
+          .get('/projects/1/members')
+          .expect(200)
+          .expect('Cache-Control', 'no-store')
+          .expect([{ userId: 1, role: 'owner' }]);
+      });
+
+      it('requires a current role in the requested project', async () => {
+        await request(app.getHttpServer())
+          .get('/projects/1/members')
+          .expect(401);
+        await owner.agent.get('/projects/999/members').expect(404);
+        await owner.agent.get('/projects/2147483648/members').expect(400);
+        await invitee.agent.get('/projects/1/members?userId=1').expect(400);
+        await owner.agent
+          .post('/projects')
+          .send({ name: 'Another project' })
+          .expect(201);
+        await owner.agent
+          .post('/projects/2/invitations')
+          .send({ inviteeId: 2 })
+          .expect(201);
+        await invitee.agent.post('/invitations/1/accept').expect(200);
+        await owner.agent
+          .post('/projects/1/invitations')
+          .send({ inviteeId: 2 })
+          .expect(201);
+        await invitee.agent.get('/projects/2/members').expect(200);
+        await invitee.agent.get('/projects/1/members').expect(404);
+        await owner.agent
+          .get('/projects/1/members')
+          .expect(200)
+          .expect([{ userId: 1, role: 'owner' }]);
+      });
+
+      it('shows current roles after accepting, transferring and leaving', async () => {
+        const third = await createAuthenticatedClient(
+          'roster-member@example.com',
+        );
+        // Accept in reverse user ID order to verify stable member ordering.
+        await owner.agent
+          .post('/projects/1/invitations')
+          .send({ inviteeId: 3 })
+          .expect(201);
+        await third.agent.post('/invitations/1/accept').expect(200);
+        await owner.agent
+          .post('/projects/1/invitations')
+          .send({ inviteeId: 2 })
+          .expect(201);
+        await invitee.agent.post('/invitations/2/accept').expect(200);
+        await invitee.agent
+          .get('/projects/1/members')
+          .expect(200)
+          .expect([
+            { userId: 1, role: 'owner' },
+            { userId: 2, role: 'member' },
+            { userId: 3, role: 'member' },
+          ]);
+
+        await owner.agent
+          .post('/projects/1/transfer')
+          .send({ memberId: 2 })
+          .expect(204);
+        await owner.agent
+          .get('/projects/1/members')
+          .expect(200)
+          .expect([
+            { userId: 2, role: 'owner' },
+            { userId: 1, role: 'member' },
+            { userId: 3, role: 'member' },
+          ]);
+        await owner.agent.delete('/projects/1/members/me').expect(204);
+        await owner.agent.get('/projects/1/members').expect(404);
+        await invitee.agent
+          .get('/projects/1/members')
+          .expect(200)
+          .expect([
+            { userId: 2, role: 'owner' },
+            { userId: 3, role: 'member' },
+          ]);
+      });
+    });
+
     describe('transferring ownership and leaving a project', () => {
       beforeEach(async () => {
         await owner.agent

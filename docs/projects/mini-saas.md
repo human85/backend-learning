@@ -8,7 +8,7 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 
 - 路径：API 位于 `apps/mini-saas/`，浏览器客户端位于 `apps/mini-saas-web/`
 - 技术栈：Node.js、TypeScript、NestJS 11、TypeORM、PostgreSQL 17、React 19、Vite 8、TanStack Query、Tailwind CSS、shadcn/ui、Jest、Vitest
-- 阶段：第一轮闭环与 R2 已完成；R3 后端邀请、成员只读、转让/退出在 feat/project-member-read-access 验证，尚未合入 main；成员列表、前端与真实部署验收待完成。具体下一步见 [当前进度](../learning-progress.md)。
+- 第一轮闭环与 R2 已完成。R3 后端邀请、成员只读、转让/退出及成员名单在 feat/project-member-read-access 分支验证。前端和真实部署验收待完成。具体下一步见 [当前进度](../learning-progress.md)。
 - R3 实现草案：[项目邀请、转让与退出](mini-saas-invitations.md)，区分已确认规则、实现建议和未执行的验收计划。
 - 30 天里程碑：四周全部完成
 - 已有行为：`GET /` 返回 `Hello World!`；`GET /health` 返回 `{ "status": "ok" }`；认证支持注册、登录、当前用户和注销；当前功能分支允许所有者或成员读项目，仅所有者可修改/删除。线上行为未重新验证。
@@ -18,6 +18,7 @@ Mini SaaS 是本仓库的第一个完整后端应用，也是 30 天第一轮全
 - 拒绝邀请：POST /invitations/:invitationId/reject，仅受邀人可将 pending 改为 rejected，204 无响应体；重复拒绝或非 pending 为 409，且不改变成员。完整 60 单测/84 e2e、build/lint 通过；转让/退出及前端仍待交付。
 - 转让/退出：POST /projects/:projectId/transfer 接收目标用户 memberId，仅 owner 可转给本项目现有成员，204 后原 owner 成为普通成员；DELETE /projects/:projectId/members/me 普通成员退出 204、owner 409、非成员/重复退出 404。三项转让写入同事务，旧 pending 邀请有效，完整 66 单测/94 e2e 通过；前端和线上尚未验收。
 - 数据库与认证：注册和登录使用 Argon2id；PostgreSQL 保存服务端 Session；Project.ownerId 非空外键指向 User，所有查询按当前用户隔离
+- GET /projects/:projectId/members 允许所有者和当前普通成员读取名单，返回 userId 和 role。所有者排在首位，普通成员按用户 ID 升序排列。完整 66 单测与 97 e2e 在本地通过。
 
 ## 已完成
 
